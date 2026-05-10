@@ -40,17 +40,38 @@ function Profile() {
         <div className="px-5 py-5">
           <div className="rounded-3xl gradient-primary text-primary-foreground p-5 shadow-elev">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur grid place-items-center text-2xl font-bold">P</div>
-              <div>
-                <h2 className="text-xl font-bold">Pradeep Kumar</h2>
-                <p className="text-sm opacity-90">+91 98765 43210</p>
+              <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur grid place-items-center text-2xl font-bold">{initials}</div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold truncate">{name}</h2>
+                <p className="text-sm opacity-90">+91 {user?.phone || "—"}</p>
                 <p className="text-xs opacity-80">Mandya, Karnataka</p>
               </div>
             </div>
-            <div className="mt-4 flex gap-2 text-[11px]">
+            <div className="mt-4 flex gap-2 text-[11px] flex-wrap">
               <span className="rounded-full bg-white/20 px-2.5 py-1 font-semibold">Farmer</span>
               <span className="rounded-full bg-white/20 px-2.5 py-1 font-semibold inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3" />KYC verified</span>
             </div>
+          </div>
+
+          {/* User ID */}
+          <div className="mt-5 rounded-3xl bg-card shadow-card border border-border p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm flex items-center gap-1.5"><Fingerprint className="h-4 w-4 text-primary" />Unique User ID</h3>
+              <button
+                onClick={() => {
+                  if (!user) return;
+                  navigator.clipboard.writeText(user.id);
+                  setCopiedId(true);
+                  toast.success("User ID copied");
+                  setTimeout(() => setCopiedId(false), 1500);
+                }}
+                className="inline-flex items-center gap-1 text-xs font-bold text-primary"
+              >
+                {copiedId ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedId ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <p className="mt-2 text-sm font-mono break-all bg-muted/60 rounded-xl p-3 leading-relaxed">{user?.id || "—"}</p>
           </div>
 
           {/* Public key */}
