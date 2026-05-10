@@ -18,7 +18,7 @@ export function TopBar({
       <div className="flex items-center gap-2 px-3 h-14">
         {back !== false && (
           <Link
-            to={back as string}
+            to={back as any}
             className="h-10 w-10 grid place-items-center rounded-full hover:bg-muted active:bg-accent"
             aria-label="Back"
           >

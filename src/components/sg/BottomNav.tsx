@@ -22,7 +22,7 @@ export function BottomNav() {
               return (
                 <li key={to} className="flex-1">
                   <Link
-                    to={to}
+                    to={to as any}
                     className={cn(
                       "relative flex flex-col items-center gap-1 py-2 rounded-2xl transition-colors",
                       active ? "text-primary" : "text-muted-foreground"
