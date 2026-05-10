@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MapPin, Bell, TrendingUp, Sprout, ShoppingCart, Sparkles, Users } from "lucide-react";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
+import { useUser, getInitials } from "@/lib/sg/user";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
