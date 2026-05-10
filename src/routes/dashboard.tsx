@@ -25,6 +25,9 @@ function Sparkline({ points, color }: { points: number[]; color: string }) {
 }
 
 function Dashboard() {
+  const user = useUser();
+  const name = user?.name || "Guest";
+  const initials = getInitials(name);
   return (
     <>
       <div className="mobile-shell">
