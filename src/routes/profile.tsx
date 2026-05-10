@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Copy, Check, Moon, Sun, WifiOff, LogOut, Globe, ShieldCheck, ChevronRight, FileText } from "lucide-react";
+import { Copy, Check, Moon, Sun, WifiOff, LogOut, Globe, ShieldCheck, ChevronRight, FileText, Fingerprint } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { toast } from "sonner";
+import { useUser, getInitials, setUser } from "@/lib/sg/user";
 
 export const Route = createFileRoute("/profile")({ component: Profile });
 
