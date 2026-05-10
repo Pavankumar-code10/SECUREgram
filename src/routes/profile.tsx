@@ -103,7 +103,14 @@ function Profile() {
           <h3 className="mt-6 px-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">Account</h3>
           <div className="mt-2 rounded-3xl bg-card shadow-card border border-border divide-y divide-border overflow-hidden">
             <LinkRow to="/transactions" icon={FileText} label="My transactions" />
-            <LinkRow to="/" icon={LogOut} label="Logout" danger />
+            <button
+              onClick={() => { setUser(null); navigate({ to: "/" }); }}
+              className="w-full flex items-center gap-3 px-4 py-3.5 min-h-12 text-left text-destructive"
+            >
+              <div className="h-9 w-9 rounded-xl bg-destructive/10 grid place-items-center"><LogOut className="h-4 w-4" /></div>
+              <span className="flex-1 text-sm font-semibold">Logout</span>
+              <ChevronRight className="h-4 w-4 opacity-50" />
+            </button>
           </div>
 
           <p className="mt-6 text-center text-[10px] text-muted-foreground">SecureGram v1.0 • RSA-2048 • SHA-256</p>
