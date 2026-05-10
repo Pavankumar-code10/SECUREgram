@@ -76,9 +76,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "SecureGram — Encrypted Agri-Market" },
       { name: "description", content: "Secure marketplace connecting Karnataka farmers and buyers with RSA-signed, tamper-proof trust." },
       { name: "theme-color", content: "#4CAF50" },
-      { property: "og:title", content: "SecureGram" },
-      { property: "og:description", content: "Secure • Direct • Fair Agri-Market" },
+      { property: "og:title", content: "SecureGram — Encrypted Agri-Market" },
+      { property: "og:description", content: "Secure marketplace connecting Karnataka farmers and buyers with RSA-signed, tamper-proof trust." },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "SecureGram — Encrypted Agri-Market" },
+      { name: "twitter:description", content: "Secure marketplace connecting Karnataka farmers and buyers with RSA-signed, tamper-proof trust." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f1e0ae6b-fe58-4824-8b3f-88a87126b9e1/id-preview-c09abd08--bf3cbbe5-69fe-4c4f-9b25-a8d0e5da0e08.lovable.app-1778401397372.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f1e0ae6b-fe58-4824-8b3f-88a87126b9e1/id-preview-c09abd08--bf3cbbe5-69fe-4c4f-9b25-a8d0e5da0e08.lovable.app-1778401397372.png" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       {
