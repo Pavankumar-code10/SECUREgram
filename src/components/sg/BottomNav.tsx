@@ -2,13 +2,13 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Leaf, Plus, ShoppingCart, MessageCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const items = [
+const items: { to: string; icon: typeof Leaf; label: string; badge?: number }[] = [
   { to: "/dashboard", icon: Leaf, label: "Home" },
   { to: "/sell", icon: Plus, label: "Sell" },
   { to: "/marketplace", icon: ShoppingCart, label: "Buy" },
   { to: "/chat", icon: MessageCircle, label: "Chat", badge: 2 },
   { to: "/profile", icon: User, label: "Profile" },
-] as const;
+];
 
 export function BottomNav() {
   const { pathname } = useLocation();
