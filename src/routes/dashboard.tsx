@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MapPin, Bell, TrendingUp, Sprout, ShoppingCart, Sparkles, Users } from "lucide-react";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
+import { useUser, getInitials } from "@/lib/sg/user";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -24,6 +25,9 @@ function Sparkline({ points, color }: { points: number[]; color: string }) {
 }
 
 function Dashboard() {
+  const user = useUser();
+  const name = user?.name || "Guest";
+  const initials = getInitials(name);
   return (
     <>
       <div className="mobile-shell">
@@ -31,11 +35,11 @@ function Dashboard() {
         <div className="px-5 pt-12 pb-6 gradient-hero">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full gradient-primary grid place-items-center text-primary-foreground font-bold">
-              P
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">Namaskara, ನಮಸ್ಕಾರ</p>
-              <h1 className="text-xl font-bold truncate">Pradeep Kumar</h1>
+              <p className="text-xs text-muted-foreground">Hello, ನಮಸ್ಕಾರ</p>
+              <h1 className="text-xl font-bold truncate">{name}!</h1>
               <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <MapPin className="h-3 w-3" /> Mandya, Karnataka
               </div>
