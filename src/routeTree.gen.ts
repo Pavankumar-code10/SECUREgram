@@ -9,8 +9,74 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as SellRouteImport } from './routes/sell'
+import { Route as RecommendRouteImport } from './routes/recommend'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as MatchRouteImport } from './routes/match'
+import { Route as MarketplaceRouteImport } from './routes/marketplace'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as AuctionsRouteImport } from './routes/auctions'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TransactionsRoute = TransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellRoute = SellRouteImport.update({
+  id: '/sell',
+  path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecommendRoute = RecommendRouteImport.update({
+  id: '/recommend',
+  path: '/recommend',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchRoute = MatchRouteImport.update({
+  id: '/match',
+  path: '/match',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceRoute = MarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuctionsRoute = AuctionsRouteImport.update({
+  id: '/auctions',
+  path: '/auctions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +85,186 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auctions': typeof AuctionsRoute
+  '/chat': typeof ChatRoute
+  '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/match': typeof MatchRoute
+  '/onboarding': typeof OnboardingRoute
+  '/profile': typeof ProfileRoute
+  '/recommend': typeof RecommendRoute
+  '/sell': typeof SellRoute
+  '/transactions': typeof TransactionsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auctions': typeof AuctionsRoute
+  '/chat': typeof ChatRoute
+  '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/match': typeof MatchRoute
+  '/onboarding': typeof OnboardingRoute
+  '/profile': typeof ProfileRoute
+  '/recommend': typeof RecommendRoute
+  '/sell': typeof SellRoute
+  '/transactions': typeof TransactionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auctions': typeof AuctionsRoute
+  '/chat': typeof ChatRoute
+  '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/match': typeof MatchRoute
+  '/onboarding': typeof OnboardingRoute
+  '/profile': typeof ProfileRoute
+  '/recommend': typeof RecommendRoute
+  '/sell': typeof SellRoute
+  '/transactions': typeof TransactionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auctions'
+    | '/chat'
+    | '/dashboard'
+    | '/login'
+    | '/marketplace'
+    | '/match'
+    | '/onboarding'
+    | '/profile'
+    | '/recommend'
+    | '/sell'
+    | '/transactions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auctions'
+    | '/chat'
+    | '/dashboard'
+    | '/login'
+    | '/marketplace'
+    | '/match'
+    | '/onboarding'
+    | '/profile'
+    | '/recommend'
+    | '/sell'
+    | '/transactions'
+  id:
+    | '__root__'
+    | '/'
+    | '/auctions'
+    | '/chat'
+    | '/dashboard'
+    | '/login'
+    | '/marketplace'
+    | '/match'
+    | '/onboarding'
+    | '/profile'
+    | '/recommend'
+    | '/sell'
+    | '/transactions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuctionsRoute: typeof AuctionsRoute
+  ChatRoute: typeof ChatRoute
+  DashboardRoute: typeof DashboardRoute
+  LoginRoute: typeof LoginRoute
+  MarketplaceRoute: typeof MarketplaceRoute
+  MatchRoute: typeof MatchRoute
+  OnboardingRoute: typeof OnboardingRoute
+  ProfileRoute: typeof ProfileRoute
+  RecommendRoute: typeof RecommendRoute
+  SellRoute: typeof SellRoute
+  TransactionsRoute: typeof TransactionsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/transactions': {
+      id: '/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sell': {
+      id: '/sell'
+      path: '/sell'
+      fullPath: '/sell'
+      preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recommend': {
+      id: '/recommend'
+      path: '/recommend'
+      fullPath: '/recommend'
+      preLoaderRoute: typeof RecommendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/match': {
+      id: '/match'
+      path: '/match'
+      fullPath: '/match'
+      preLoaderRoute: typeof MatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace': {
+      id: '/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auctions': {
+      id: '/auctions'
+      path: '/auctions'
+      fullPath: '/auctions'
+      preLoaderRoute: typeof AuctionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,17 +277,18 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuctionsRoute: AuctionsRoute,
+  ChatRoute: ChatRoute,
+  DashboardRoute: DashboardRoute,
+  LoginRoute: LoginRoute,
+  MarketplaceRoute: MarketplaceRoute,
+  MatchRoute: MatchRoute,
+  OnboardingRoute: OnboardingRoute,
+  ProfileRoute: ProfileRoute,
+  RecommendRoute: RecommendRoute,
+  SellRoute: SellRoute,
+  TransactionsRoute: TransactionsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
