@@ -11,10 +11,15 @@ export const Route = createFileRoute("/profile")({ component: Profile });
 const PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA8K9j2vH3qZ4nE7tR2bW1xL5oF3sQ8aB6Y";
 
 function Profile() {
+  const navigate = useNavigate();
+  const user = useUser();
+  const name = user?.name || "Guest";
+  const initials = getInitials(name);
   const [dark, setDark] = useState(false);
   const [offline, setOffline] = useState(false);
   const [lang, setLang] = useState<"EN" | "KN">("EN");
   const [copied, setCopied] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
