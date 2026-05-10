@@ -14,7 +14,7 @@ export function BottomNav() {
   const { pathname } = useLocation();
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 pointer-events-none">
-      <div className="mobile-shell pointer-events-auto">
+      <div className="mx-auto max-w-[428px] pointer-events-auto">
         <div className="glass border-t border-border px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <ul className="flex items-end justify-between">
             {items.map(({ to, icon: Icon, label, badge }) => {
