@@ -41,7 +41,7 @@ function Login() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value.slice(0, 40))}
-            placeholder="Pradeep Kumar"
+            placeholder="Enter your name"
             className="flex-1 px-3 py-3.5 bg-transparent outline-none text-base"
           />
         </div>
@@ -55,7 +55,7 @@ function Login() {
             inputMode="numeric"
             value={phone}
             onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-            placeholder="98765 43210"
+            placeholder="Enter phone number"
             className="flex-1 px-3 py-3.5 bg-transparent outline-none text-base"
           />
         </div>
