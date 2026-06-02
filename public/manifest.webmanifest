@@ -1,0 +1,23 @@
+{
+  "name": "SecureGram — Encrypted Agri-Market",
+  "short_name": "SecureGram",
+  "description": "Secure marketplace connecting Karnataka farmers and buyers with RSA-signed, tamper-proof trust.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F1A14",
+  "theme_color": "#4CAF50",
+  "lang": "en-IN",
+  "categories": ["business", "finance", "shopping", "productivity"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Sell produce", "short_name": "Sell", "url": "/sell", "description": "List a new crop" },
+    { "name": "Marketplace", "short_name": "Buy", "url": "/marketplace", "description": "Browse listings" },
+    { "name": "Auctions", "short_name": "Bid", "url": "/auctions", "description": "Live auctions" }
+  ]
+}
