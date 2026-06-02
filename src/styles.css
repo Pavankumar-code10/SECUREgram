@@ -130,13 +130,18 @@
 
 @layer base {
   * { border-color: var(--color-border); }
+  html { font-size: 17px; }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
   }
-  h1, h2, h3, h4 { letter-spacing: -0.02em; }
+  h1, h2, h3, h4 { letter-spacing: -0.02em; line-height: 1.25; }
+  /* Multilingual safety: regional scripts (Kannada/Devanagari) need extra vertical room */
+  :lang(kn), [lang="kn"] { line-height: 1.7; }
+  button, a { min-height: 44px; }
   ::placeholder { color: #9E9E9E; opacity: 0.7; }
   .dark ::placeholder { color: #757575; opacity: 0.7; }
 }
