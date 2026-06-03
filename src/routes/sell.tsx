@@ -106,15 +106,26 @@ function Sell() {
   };
   const stopVoice = () => { recRef.current?.stop?.(); setListening(false); };
 
-  const sign = () => {
+  const sign = async () => {
     if (!photo) { toast.error("Please add a crop photo"); return; }
+    if (!user) { toast.error("Please log in to list produce"); navigate({ to: "/login", search: { role: "farmer" } }); return; }
+    if (!price || price <= 0) { toast.error("Set a valid price"); return; }
     setState("signing");
-    setTimeout(() => {
-      setState("done");
-      celebrate();
-      setTimeout(() => navigate({ to: "/match" }), 1600);
-    }, 1800);
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from("listings").insert({
+      seller_id: user.id,
+      crop: cropName,
+      quantity_quintal: qty,
+      price_per_quintal: price,
+      description: `Grade ${quality}`,
+    });
+    if (error) { setState("idle"); toast.error(error.message); return; }
+    setState("done");
+    celebrate();
+    toast.success("Listing signed & published");
+    setTimeout(() => navigate({ to: "/match" }), 1400);
   };
+
 
   const filtered = query
     ? CROPS.map(g => ({ ...g, items: g.items.filter(c => c.en.toLowerCase().includes(query.toLowerCase()) || c.kn.includes(query)) })).filter(g => g.items.length)

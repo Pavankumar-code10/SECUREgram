@@ -27,6 +27,7 @@ function Onboarding() {
       <div className="mt-8 space-y-4">
         <Link
           to="/login"
+          search={{ role: "farmer" }}
           className="block rounded-3xl bg-card shadow-card p-6 border border-border active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center gap-4">
@@ -42,6 +43,7 @@ function Onboarding() {
 
         <Link
           to="/login"
+          search={{ role: "buyer" }}
           className="block rounded-3xl bg-card shadow-card p-6 border border-border active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center gap-4">
@@ -54,6 +56,7 @@ function Onboarding() {
             </div>
           </div>
         </Link>
+
       </div>
 
       <div className="mt-auto pt-10">
