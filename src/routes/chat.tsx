@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, ShieldCheck, Lock, MessageCircle, ArrowLeft } from "lucide-react";
+import { Send, Paperclip, ShieldCheck, Lock, MessageCircle } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
