@@ -155,7 +155,7 @@ function Thread({ me, other }: { me: string; other: string }) {
         <TopBar
           title={contact?.name || "Conversation"}
           subtitle="🟢 Online • E2E encrypted"
-          left={<Link to="/chat" search={{}} className="h-9 w-9 rounded-full bg-muted grid place-items-center"><ArrowLeft className="h-4 w-4" /></Link>}
+          back="/chat"
           right={<TrustBadge variant="rsa" />}
         />
 
