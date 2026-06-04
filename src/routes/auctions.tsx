@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Clock, Gavel, ShieldCheck, Loader2, Check, AlertCircle, Tag, TrendingUp, Users, Plus, X } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
