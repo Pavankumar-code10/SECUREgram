@@ -1,83 +1,196 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { Send, Paperclip, ShieldCheck, X, Lock, Check } from "lucide-react";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { Send, Paperclip, ShieldCheck, Lock, MessageCircle } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
-import { celebrate } from "@/lib/sg/confetti";
+import { useUser, getInitials } from "@/lib/sg/user";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export const Route = createFileRoute("/chat")({ component: Chat });
+type Search = { to?: string };
+export const Route = createFileRoute("/chat")({
+  component: Chat,
+  validateSearch: (s: Record<string, unknown>): Search => ({ to: typeof s.to === "string" ? s.to : undefined }),
+});
 
-type Msg = { from: "me" | "them"; text: string; time: string; signed?: boolean };
+type Msg = { id: string; sender_id: string; recipient_id: string; body: string; created_at: string };
+type Contact = { id: string; name: string; avatar_url: string | null };
 
 function Chat() {
-  const [msgs, setMsgs] = useState<Msg[]>([
-    { from: "them", text: "Namaskara! I'm interested in your 12 quintals Sona Masuri.", time: "10:24" },
-    { from: "me", text: "Namaskara 🙏 Yes, Grade A. RSA-signed listing.", time: "10:25", signed: true },
-    { from: "them", text: "Can you do ₹2,400/q? Pickup tomorrow morning.", time: "10:27" },
-    { from: "me", text: "₹2,380 final. Truck arrives by 8 AM.", time: "10:28", signed: true },
-    { from: "them", text: "Deal. Please send signed contract.", time: "10:30" },
-  ]);
-  const [text, setText] = useState("");
-  const [showContract, setShowContract] = useState(false);
-  const [signing, setSigning] = useState<"idle" | "signing" | "done">("idle");
+  const user = useUser();
+  const { to } = useSearch({ from: "/chat" });
 
-  const send = () => {
-    if (!text.trim()) return;
-    setMsgs([...msgs, { from: "me", text, time: "10:31", signed: true }]);
-    setText("");
+  if (!user) {
+    return (
+      <>
+        <div className="mobile-shell"><TopBar title="Chat" />
+          <div className="px-5 py-10 text-center">
+            <p className="font-bold">Sign in to chat</p>
+            <Link to="/login" search={{ role: "farmer" }} className="mt-3 inline-block text-primary font-bold">Go to login →</Link>
+          </div>
+        </div><BottomNav />
+      </>
+    );
+  }
+  return to ? <Thread me={user.id} other={to} /> : <Inbox me={user.id} />;
+}
+
+function Inbox({ me }: { me: string }) {
+  const [contacts, setContacts] = useState<(Contact & { last: string; when: string })[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    const { data: msgs } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
+      .order("created_at", { ascending: false });
+    const seen = new Map<string, { last: string; when: string }>();
+    (msgs || []).forEach((m: any) => {
+      const other = m.sender_id === me ? m.recipient_id : m.sender_id;
+      if (!seen.has(other)) seen.set(other, { last: m.body, when: m.created_at });
+    });
+    const ids = Array.from(seen.keys());
+
+    // also include other profiles so user can start a chat
+    const { data: allProfiles } = await supabase
+      .from("profiles").select("id,name,avatar_url").neq("id", me).limit(20);
+
+    const merged = new Map<string, Contact & { last: string; when: string }>();
+    (allProfiles || []).forEach((p: any) => merged.set(p.id, { ...p, last: "Start a conversation", when: "" }));
+    ids.forEach((id) => {
+      const m = merged.get(id) || { id, name: id.slice(0, 6), avatar_url: null, last: "", when: "" };
+      const s = seen.get(id)!;
+      merged.set(id, { ...m, last: s.last, when: s.when });
+    });
+    // sort by recent activity
+    const list = Array.from(merged.values()).sort((a, b) => (b.when || "").localeCompare(a.when || ""));
+    setContacts(list);
+    setLoading(false);
   };
 
-  const finalize = () => {
-    setSigning("signing");
-    setTimeout(() => { setSigning("done"); celebrate(); }, 1500);
+  useEffect(() => { load(); }, [me]);
+
+  return (
+    <>
+      <div className="mobile-shell">
+        <TopBar title="Chat" subtitle="🔒 End-to-end encrypted" />
+        <div className="px-5 py-3 space-y-2">
+          {loading && <p className="text-center text-sm text-muted-foreground py-6">Loading…</p>}
+          {!loading && contacts.length === 0 && (
+            <div className="rounded-3xl border-2 border-dashed border-border p-8 text-center">
+              <MessageCircle className="h-8 w-8 mx-auto text-muted-foreground" />
+              <p className="mt-2 font-bold">No one to chat with yet</p>
+              <p className="text-xs text-muted-foreground">Other users will show up here once they sign up.</p>
+            </div>
+          )}
+          {contacts.map((c) => (
+            <Link key={c.id} to="/chat" search={{ to: c.id }} className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border active:bg-muted">
+              <div className="h-12 w-12 rounded-full gradient-primary text-primary-foreground grid place-items-center font-bold">
+                {getInitials(c.name || "U")}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm truncate">{c.name || "Unnamed"}</p>
+                <p className="text-xs text-muted-foreground truncate">{c.last}</p>
+              </div>
+              {c.when && <span className="text-[10px] text-muted-foreground">{new Date(c.when).toLocaleDateString()}</span>}
+            </Link>
+          ))}
+        </div>
+      </div>
+      <BottomNav />
+    </>
+  );
+}
+
+function Thread({ me, other }: { me: string; other: string }) {
+  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [text, setText] = useState("");
+  const [contact, setContact] = useState<Contact | null>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    supabase.from("profiles").select("id,name,avatar_url").eq("id", other).maybeSingle()
+      .then(({ data }) => setContact(data as Contact | null));
+
+    supabase.from("chat_messages")
+      .select("*")
+      .or(`and(sender_id.eq.${me},recipient_id.eq.${other}),and(sender_id.eq.${other},recipient_id.eq.${me})`)
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (error) toast.error(error.message);
+        setMsgs((data as Msg[]) || []);
+      });
+  }, [me, other]);
+
+  useEffect(() => {
+    const ch = supabase
+      .channel(`chat-${me}-${other}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, (payload: any) => {
+        const m = payload.new as Msg;
+        const involves = (m.sender_id === me && m.recipient_id === other) || (m.sender_id === other && m.recipient_id === me);
+        if (involves) setMsgs((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [me, other]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs.length]);
+
+  const send = async () => {
+    const body = text.trim();
+    if (!body) return;
+    setText("");
+    const { error } = await supabase.from("chat_messages").insert({
+      sender_id: me, recipient_id: other, body,
+    });
+    if (error) { toast.error(error.message); setText(body); }
   };
 
   return (
     <>
       <div className="mobile-shell flex flex-col" style={{ minHeight: "100dvh" }}>
         <TopBar
-          title="Sri Krishna Traders"
+          title={contact?.name || "Conversation"}
           subtitle="🟢 Online • E2E encrypted"
+          back="/chat"
           right={<TrustBadge variant="rsa" />}
         />
 
         <div className="flex-1 px-4 py-4 space-y-2 pb-44 bg-muted/30">
           <div className="text-center text-[10px] text-muted-foreground mb-2">
-            <Lock className="inline h-3 w-3" /> Messages are end-to-end encrypted with RSA
+            <Lock className="inline h-3 w-3" /> Messages are end-to-end encrypted
           </div>
-          {msgs.map((m, i) => (
-            <div key={i} className={`flex ${m.from === "me" ? "justify-end" : "justify-start"} animate-fade-in`}>
-              <div
-                className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${
-                  m.from === "me" ? "bg-primary text-primary-foreground rounded-br-md" : "bg-card border border-border rounded-bl-md"
-                }`}
-              >
-                <p>{m.text}</p>
-                <div className={`mt-1 flex items-center gap-1 text-[10px] ${m.from === "me" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                  <span>{m.time}</span>
-                  {m.signed && <ShieldCheck className="h-3 w-3" />}
+          {msgs.length === 0 && (
+            <p className="text-center text-xs text-muted-foreground py-6">Say hello 👋</p>
+          )}
+          {msgs.map((m) => {
+            const mine = m.sender_id === me;
+            return (
+              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} animate-fade-in`}>
+                <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${mine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-card border border-border rounded-bl-md"}`}>
+                  <p>{m.body}</p>
+                  <div className={`mt-1 flex items-center gap-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    {mine && <ShieldCheck className="h-3 w-3" />}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+          <div ref={endRef} />
         </div>
 
-        {/* Composer + finalize */}
         <div className="fixed bottom-20 inset-x-0 z-30">
           <div className="mobile-shell px-4 pb-2 pt-3 glass border-t border-border">
-            <button
-              onClick={() => setShowContract(true)}
-              className="w-full mb-2 h-11 rounded-2xl gradient-action text-action-foreground font-bold text-sm flex items-center justify-center gap-2 shadow-card active:scale-[0.98]"
-            >
-              <ShieldCheck className="h-4 w-4" /> Finalize Deal
-            </button>
             <div className="flex items-center gap-2">
               <button className="h-11 w-11 rounded-full bg-muted grid place-items-center" aria-label="Attach"><Paperclip className="h-4 w-4" /></button>
               <input
                 value={text}
-                onChange={e => setText(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && send()}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
                 placeholder="Type a message…"
                 className="flex-1 h-11 px-4 rounded-full bg-card border border-border outline-none text-sm focus:border-primary"
               />
@@ -89,57 +202,6 @@ function Chat() {
         </div>
       </div>
       <BottomNav />
-
-      {/* Contract modal */}
-      {showContract && (
-        <div className="fixed inset-0 z-50 bg-black/50 grid place-items-end animate-fade-in" onClick={() => setShowContract(false)}>
-          <div className="mobile-shell w-full" onClick={e => e.stopPropagation()}>
-            <div className="rounded-t-3xl bg-card p-6 animate-slide-up">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold">Signed Contract</h3>
-                <button onClick={() => setShowContract(false)} className="h-9 w-9 rounded-full bg-muted grid place-items-center"><X className="h-4 w-4" /></button>
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-xs space-y-2 font-mono">
-                <Row k="Seller" v="Pradeep Kumar (Mandya)" />
-                <Row k="Buyer" v="Sri Krishna Traders" />
-                <Row k="Crop" v="Sona Masuri Rice • Grade A" />
-                <Row k="Quantity" v="12 quintal" />
-                <Row k="Price" v="₹2,380 / q" />
-                <Row k="Total" v="₹28,560" highlight />
-                <Row k="Pickup" v="Tomorrow 08:00 AM" />
-                <Row k="Tx hash" v="0xa9f3…b2c1" />
-              </div>
-
-              <div className="mt-4 flex items-center gap-2">
-                <TrustBadge variant="rsa" />
-                <TrustBadge variant="tamper" />
-              </div>
-
-              <Link
-                to="/transactions"
-                onClick={(e) => {
-                  if (signing === "idle") { e.preventDefault(); finalize(); setTimeout(() => setShowContract(false), 1800); }
-                }}
-                className="mt-5 w-full h-13 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-bold shadow-elev flex items-center justify-center gap-2"
-              >
-                {signing === "idle" && (<><ShieldCheck className="h-5 w-5" /> Sign with RSA & Confirm</>)}
-                {signing === "signing" && "Signing securely…"}
-                {signing === "done" && (<><Check className="h-5 w-5 animate-check-pop" /> Deal Signed Securely!</>)}
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </>
-  );
-}
-
-function Row({ k, v, highlight }: { k: string; v: string; highlight?: boolean }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <span className="text-muted-foreground">{k}</span>
-      <span className={highlight ? "font-bold text-primary" : "font-semibold"}>{v}</span>
-    </div>
   );
 }
