@@ -156,7 +156,10 @@ function Marketplace() {
                 </div>
                 <div className="mt-1.5 flex items-center justify-between gap-1">
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <MapPin className="h-3 w-3" />Karnataka
+                    <MapPin className="h-3 w-3" />
+                    {typeof i.distance_km === "number"
+                      ? `${i.distance_km.toFixed(1)} km away`
+                      : (i.district || i.state || "Karnataka")}
                   </span>
                   <TrustBadge variant="rsa" className="!px-1.5 !py-0.5 !text-[9px]" />
                 </div>
