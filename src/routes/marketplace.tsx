@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, SlidersHorizontal, MapPin, ShieldCheck, Plus, X, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, MapPin, ShieldCheck, Plus, X, Loader2, Navigation } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
@@ -19,6 +19,9 @@ type Item = {
   unit: string;
   image_url: string | null;
   seller_id: string;
+  distance_km?: number | null;
+  district?: string | null;
+  state?: string | null;
 };
 
 const CATEGORIES = ["All", "Rice", "Pulses", "Vegetables", "Fruits", "Spices", "Inputs"];
@@ -31,8 +34,11 @@ function Marketplace() {
   const [cat, setCat] = useState("All");
   const [q, setQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [nearby, setNearby] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [radiusKm, setRadiusKm] = useState(100);
 
-  const load = async () => {
+  const loadAll = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("marketplace_items")
@@ -42,7 +48,35 @@ function Marketplace() {
     setItems((data as Item[]) || []);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+
+  const loadNearby = async () => {
+    if (!navigator.geolocation) { toast.error("Geolocation not supported"); setNearby(false); return; }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { data, error } = await supabase.rpc("nearby_marketplace_items", {
+          buyer_lat: pos.coords.latitude,
+          buyer_lng: pos.coords.longitude,
+          radius_km: radiusKm,
+          category_filter: cat === "All" ? null : cat,
+          q: q || null,
+        });
+        if (error) toast.error(error.message);
+        setItems((data as Item[]) || []);
+        setGeoLoading(false);
+        setLoading(false);
+        if (!data || data.length === 0) toast.info(`No listings within ${radiusKm} km — try widening the radius.`);
+      },
+      () => { toast.error("Location permission denied"); setGeoLoading(false); setNearby(false); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  useEffect(() => {
+    if (nearby) loadNearby();
+    else loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nearby, radiusKm]);
 
   const filtered = useMemo(() => items.filter((i) => {
     if (cat !== "All" && i.category !== cat) return false;
