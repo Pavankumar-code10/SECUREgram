@@ -187,12 +187,25 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
   const [stock, setStock] = useState(10);
   const [unit, setUnit] = useState("quintal");
   const [saving, setSaving] = useState(false);
+  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+
+  const grabGeo = () =>
+    new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 8000 },
+      );
+    });
 
   const save = async () => {
     if (!name.trim()) { toast.error("Add a name"); return; }
     setSaving(true);
+    const loc = geo ?? (await grabGeo());
     const { error } = await supabase.from("marketplace_items").insert({
       seller_id: userId, name: name.trim(), category, price, stock, unit,
+      latitude: loc?.lat ?? null, longitude: loc?.lng ?? null, state: "Karnataka",
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
