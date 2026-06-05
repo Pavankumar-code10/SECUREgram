@@ -61,7 +61,7 @@ function Sell() {
   const [quality, setQuality] = useState<"A" | "B" | "C">("A");
   const crop = ALL_CROPS.find(c => c.en === cropName) || ALL_CROPS[0];
   const initialFair = crop.price + (quality === "A" ? 70 : quality === "C" ? -120 : 0);
-  const [price, setPrice] = useState(fairPrice);
+  const [price, setPrice] = useState(initialFair);
   const [photo, setPhoto] = useState<string | null>(null);
   const [showOpts, setShowOpts] = useState(false);
   const [viewing, setViewing] = useState(false);
