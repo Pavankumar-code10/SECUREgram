@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, Check, Sparkles, ShieldCheck, X, Eye, Pencil, Image as ImageIcon, TrendingUp, TrendingDown, Minus, Plus, Mic, MicOff, Search } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Camera, Loader2, Check, Sparkles, ShieldCheck, X, Eye, Pencil, Image as ImageIcon, TrendingUp, TrendingDown, Minus, Plus, Mic, MicOff, Search, MapPin } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
 import { celebrate } from "@/lib/sg/confetti";
 import { useUser } from "@/lib/sg/user";
+import { getMandiPrice } from "@/lib/mandi.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
