@@ -232,6 +232,14 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
             <Field label="Stock"><input type="number" value={stock} onChange={(e) => setStock(Number(e.target.value) || 0)} className="sg-input" /></Field>
             <Field label="Unit"><input value={unit} onChange={(e) => setUnit(e.target.value)} className="sg-input" /></Field>
           </div>
+          <button
+            type="button"
+            onClick={async () => { const g = await grabGeo(); setGeo(g); g ? toast.success("Location attached") : toast.error("Location unavailable"); }}
+            className={`w-full h-11 rounded-2xl border-2 text-xs font-bold inline-flex items-center justify-center gap-2 ${geo ? "border-primary bg-primary/10 text-primary" : "border-border bg-card"}`}
+          >
+            <MapPin className="h-4 w-4" />
+            {geo ? `Pinned · ${geo.lat.toFixed(3)},${geo.lng.toFixed(3)}` : "Attach my location (for Near Me)"}
+          </button>
           <button onClick={save} disabled={saving} className="w-full h-12 rounded-2xl gradient-primary text-primary-foreground font-bold disabled:opacity-60 flex items-center justify-center gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} List item
           </button>
