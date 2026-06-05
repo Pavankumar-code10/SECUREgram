@@ -154,7 +154,7 @@ function Marketplace() {
         <ListItemSheet
           userId={user.id}
           onClose={() => setShowAdd(false)}
-          onCreated={() => { setShowAdd(false); load(); }}
+          onCreated={() => { setShowAdd(false); nearby ? loadNearby() : loadAll(); }}
         />
       )}
     </>
