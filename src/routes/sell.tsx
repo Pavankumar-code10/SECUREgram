@@ -362,11 +362,39 @@ function Sell() {
                 {" "}Your ask {diff === 0 ? "matches" : (diff > 0 ? `+₹${diff} (${diffPct}%) above` : `₹${Math.abs(diff)} (${Math.abs(diffPct)}%) below`)} fair
               </span>
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Based on 14-day mandi avg + your grade. Likely matched within 4 hours.
-            </p>
+            {/* Live mandi benchmark */}
+            <div className="mt-3 rounded-2xl bg-background/60 border border-border p-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Live Agmarknet (Karnataka)</p>
+              {mandiLoading ? (
+                <p className="text-[12px] text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Fetching mandi price…</p>
+              ) : mandi ? (
+                <p className="text-[12px] mt-1">
+                  <span className="font-bold text-foreground">₹{mandi.modal}/q</span>{" "}
+                  <span className="text-muted-foreground">at {mandi.market} · {mandi.date}</span>
+                </p>
+              ) : (
+                <p className="text-[12px] text-muted-foreground mt-1">No mandi data — using GRAMA estimate.</p>
+              )}
+            </div>
           </div>
-        </div>
+
+          {/* Farm location */}
+          <Field label="Farm location / ಸ್ಥಳ">
+            <button
+              onClick={captureLocation}
+              disabled={geoState === "locating"}
+              className={`w-full min-h-12 rounded-2xl border-2 px-4 flex items-center justify-between transition active:scale-[0.98] ${
+                geo ? "border-primary bg-primary/10" : "border-border bg-card"
+              }`}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <MapPin className={`h-4 w-4 ${geo ? "text-primary" : "text-muted-foreground"}`} />
+                {geoState === "locating" ? "Locating…" : geo ? `${geo.lat.toFixed(4)}, ${geo.lng.toFixed(4)}` : "Tap to share GPS"}
+              </span>
+              {geoState === "locating" ? <Loader2 className="h-4 w-4 animate-spin" /> : geo ? <Check className="h-4 w-4 text-primary" /> : null}
+            </button>
+            <p className="mt-1 text-[11px] text-muted-foreground">Buyers see your distance — helps freight matching.</p>
+          </Field>
 
         <div className="px-5 pb-6">
           <button
