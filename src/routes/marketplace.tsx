@@ -106,6 +106,22 @@ function Marketplace() {
             </button>
           </div>
           <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setNearby((v) => !v)}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold border inline-flex items-center gap-1 ${nearby ? "bg-action text-action-foreground border-action" : "bg-card border-border"}`}
+            >
+              {geoLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Navigation className="h-3 w-3" />}
+              {nearby ? `Near me · ${radiusKm}km` : "Near me"}
+            </button>
+            {nearby && (
+              <select
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                className="shrink-0 rounded-full px-2 py-1.5 text-xs font-semibold bg-card border border-border"
+              >
+                {[25, 50, 100, 200, 500].map((r) => <option key={r} value={r}>{r} km</option>)}
+              </select>
+            )}
             {CATEGORIES.map((t) => (
               <button key={t} onClick={() => setCat(t)} className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold border ${cat === t ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>{t}</button>
             ))}
