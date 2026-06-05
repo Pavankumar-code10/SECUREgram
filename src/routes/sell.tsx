@@ -395,6 +395,7 @@ function Sell() {
             </button>
             <p className="mt-1 text-[11px] text-muted-foreground">Buyers see your distance — helps freight matching.</p>
           </Field>
+        </div>
 
         <div className="px-5 pb-6">
           <button
