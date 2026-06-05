@@ -159,6 +159,9 @@ function Sell() {
       quantity_quintal: qty,
       price_per_quintal: price,
       description: `Grade ${quality}`,
+      latitude: geo?.lat ?? null,
+      longitude: geo?.lng ?? null,
+      state: "Karnataka",
     });
     if (error) { setState("idle"); toast.error(error.message); return; }
     setState("done");
