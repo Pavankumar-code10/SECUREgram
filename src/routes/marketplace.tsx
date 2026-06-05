@@ -58,8 +58,8 @@ function Marketplace() {
           buyer_lat: pos.coords.latitude,
           buyer_lng: pos.coords.longitude,
           radius_km: radiusKm,
-          category_filter: cat === "All" ? null : cat,
-          q: q || null,
+          category_filter: cat === "All" ? undefined : cat,
+          q: q || undefined,
         });
         if (error) toast.error(error.message);
         setItems((data as Item[]) || []);
