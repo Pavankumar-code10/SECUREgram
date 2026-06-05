@@ -68,13 +68,52 @@ function Sell() {
   const [state, setState] = useState<"idle" | "signing" | "done">("idle");
   const [listening, setListening] = useState(false);
   const recRef = useRef<any>(null);
+  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoState, setGeoState] = useState<"idle" | "locating" | "ok" | "denied">("idle");
+  const [mandi, setMandi] = useState<{ modal: number; market: string; date: string } | null>(null);
+  const [mandiLoading, setMandiLoading] = useState(false);
+  const fetchMandi = useServerFn(getMandiPrice);
+
+  // Live mandi price: replaces hardcoded crop.price as baseline when available
+  const baselinePrice = mandi?.modal ?? crop.price;
+  const fairPrice = baselinePrice + (quality === "A" ? 70 : quality === "C" ? -120 : 0);
 
   const askedPrice = price || 0;
   const diff = askedPrice - fairPrice;
   const diffPct = fairPrice ? Math.round((diff / fairPrice) * 100) : 0;
 
-  // sync price to fair when crop changes
-  useEffect(() => { setPrice(fairPrice); }, [cropName, quality]); // eslint-disable-line
+  // sync price to fair when crop or quality changes
+  useEffect(() => { setPrice(fairPrice); }, [cropName, quality, mandi?.modal]); // eslint-disable-line
+
+  // Fetch live mandi modal price for this crop
+  useEffect(() => {
+    let cancelled = false;
+    setMandiLoading(true);
+    setMandi(null);
+    fetchMandi({ data: { commodity: cropName, state: "Karnataka" } })
+      .then((res) => {
+        if (cancelled) return;
+        const row = res.rows?.[0];
+        if (row) setMandi({ modal: Number(row.modal_price), market: row.market, date: row.arrival_date });
+      })
+      .catch((e) => console.warn("mandi fetch failed", e))
+      .finally(() => { if (!cancelled) setMandiLoading(false); });
+    return () => { cancelled = true; };
+  }, [cropName, fetchMandi]);
+
+  const captureLocation = () => {
+    if (!navigator.geolocation) { toast.error("Geolocation not supported"); return; }
+    setGeoState("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoState("ok");
+        toast.success("Farm location captured");
+      },
+      () => { setGeoState("denied"); toast.error("Location permission denied"); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
