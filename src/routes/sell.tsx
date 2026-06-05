@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, Check, Sparkles, ShieldCheck, X, Eye, Pencil, Image as ImageIcon, TrendingUp, TrendingDown, Minus, Plus, Mic, MicOff, Search } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Camera, Loader2, Check, Sparkles, ShieldCheck, X, Eye, Pencil, Image as ImageIcon, TrendingUp, TrendingDown, Minus, Plus, Mic, MicOff, Search, MapPin } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
 import { celebrate } from "@/lib/sg/confetti";
 import { useUser } from "@/lib/sg/user";
+import { getMandiPrice } from "@/lib/mandi.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
@@ -58,21 +60,60 @@ function Sell() {
   const [qty, setQty] = useState(12);
   const [quality, setQuality] = useState<"A" | "B" | "C">("A");
   const crop = ALL_CROPS.find(c => c.en === cropName) || ALL_CROPS[0];
-  const fairPrice = crop.price + (quality === "A" ? 70 : quality === "C" ? -120 : 0);
-  const [price, setPrice] = useState(fairPrice);
+  const initialFair = crop.price + (quality === "A" ? 70 : quality === "C" ? -120 : 0);
+  const [price, setPrice] = useState(initialFair);
   const [photo, setPhoto] = useState<string | null>(null);
   const [showOpts, setShowOpts] = useState(false);
   const [viewing, setViewing] = useState(false);
   const [state, setState] = useState<"idle" | "signing" | "done">("idle");
   const [listening, setListening] = useState(false);
   const recRef = useRef<any>(null);
+  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoState, setGeoState] = useState<"idle" | "locating" | "ok" | "denied">("idle");
+  const [mandi, setMandi] = useState<{ modal: number; market: string; date: string } | null>(null);
+  const [mandiLoading, setMandiLoading] = useState(false);
+  const fetchMandi = useServerFn(getMandiPrice);
+
+  // Live mandi price: replaces hardcoded crop.price as baseline when available
+  const baselinePrice = mandi?.modal ?? crop.price;
+  const fairPrice = baselinePrice + (quality === "A" ? 70 : quality === "C" ? -120 : 0);
 
   const askedPrice = price || 0;
   const diff = askedPrice - fairPrice;
   const diffPct = fairPrice ? Math.round((diff / fairPrice) * 100) : 0;
 
-  // sync price to fair when crop changes
-  useEffect(() => { setPrice(fairPrice); }, [cropName, quality]); // eslint-disable-line
+  // sync price to fair when crop or quality changes
+  useEffect(() => { setPrice(fairPrice); }, [cropName, quality, mandi?.modal]); // eslint-disable-line
+
+  // Fetch live mandi modal price for this crop
+  useEffect(() => {
+    let cancelled = false;
+    setMandiLoading(true);
+    setMandi(null);
+    fetchMandi({ data: { commodity: cropName, state: "Karnataka" } })
+      .then((res) => {
+        if (cancelled) return;
+        const row = res.rows?.[0];
+        if (row) setMandi({ modal: Number(row.modal_price), market: row.market, date: row.arrival_date });
+      })
+      .catch((e) => console.warn("mandi fetch failed", e))
+      .finally(() => { if (!cancelled) setMandiLoading(false); });
+    return () => { cancelled = true; };
+  }, [cropName, fetchMandi]);
+
+  const captureLocation = () => {
+    if (!navigator.geolocation) { toast.error("Geolocation not supported"); return; }
+    setGeoState("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoState("ok");
+        toast.success("Farm location captured");
+      },
+      () => { setGeoState("denied"); toast.error("Location permission denied"); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -118,6 +159,9 @@ function Sell() {
       quantity_quintal: qty,
       price_per_quintal: price,
       description: `Grade ${quality}`,
+      latitude: geo?.lat ?? null,
+      longitude: geo?.lng ?? null,
+      state: "Karnataka",
     });
     if (error) { setState("idle"); toast.error(error.message); return; }
     setState("done");
@@ -318,10 +362,39 @@ function Sell() {
                 {" "}Your ask {diff === 0 ? "matches" : (diff > 0 ? `+₹${diff} (${diffPct}%) above` : `₹${Math.abs(diff)} (${Math.abs(diffPct)}%) below`)} fair
               </span>
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Based on 14-day mandi avg + your grade. Likely matched within 4 hours.
-            </p>
+            {/* Live mandi benchmark */}
+            <div className="mt-3 rounded-2xl bg-background/60 border border-border p-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Live Agmarknet (Karnataka)</p>
+              {mandiLoading ? (
+                <p className="text-[12px] text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Fetching mandi price…</p>
+              ) : mandi ? (
+                <p className="text-[12px] mt-1">
+                  <span className="font-bold text-foreground">₹{mandi.modal}/q</span>{" "}
+                  <span className="text-muted-foreground">at {mandi.market} · {mandi.date}</span>
+                </p>
+              ) : (
+                <p className="text-[12px] text-muted-foreground mt-1">No mandi data — using GRAMA estimate.</p>
+              )}
+            </div>
           </div>
+
+          {/* Farm location */}
+          <Field label="Farm location / ಸ್ಥಳ">
+            <button
+              onClick={captureLocation}
+              disabled={geoState === "locating"}
+              className={`w-full min-h-12 rounded-2xl border-2 px-4 flex items-center justify-between transition active:scale-[0.98] ${
+                geo ? "border-primary bg-primary/10" : "border-border bg-card"
+              }`}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <MapPin className={`h-4 w-4 ${geo ? "text-primary" : "text-muted-foreground"}`} />
+                {geoState === "locating" ? "Locating…" : geo ? `${geo.lat.toFixed(4)}, ${geo.lng.toFixed(4)}` : "Tap to share GPS"}
+              </span>
+              {geoState === "locating" ? <Loader2 className="h-4 w-4 animate-spin" /> : geo ? <Check className="h-4 w-4 text-primary" /> : null}
+            </button>
+            <p className="mt-1 text-[11px] text-muted-foreground">Buyers see your distance — helps freight matching.</p>
+          </Field>
         </div>
 
         <div className="px-5 pb-6">

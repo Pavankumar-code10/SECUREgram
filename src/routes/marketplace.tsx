@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, SlidersHorizontal, MapPin, ShieldCheck, Plus, X, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, MapPin, ShieldCheck, Plus, X, Loader2, Navigation } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
@@ -19,6 +19,9 @@ type Item = {
   unit: string;
   image_url: string | null;
   seller_id: string;
+  distance_km?: number | null;
+  district?: string | null;
+  state?: string | null;
 };
 
 const CATEGORIES = ["All", "Rice", "Pulses", "Vegetables", "Fruits", "Spices", "Inputs"];
@@ -31,8 +34,11 @@ function Marketplace() {
   const [cat, setCat] = useState("All");
   const [q, setQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [nearby, setNearby] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [radiusKm, setRadiusKm] = useState(100);
 
-  const load = async () => {
+  const loadAll = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("marketplace_items")
@@ -42,7 +48,35 @@ function Marketplace() {
     setItems((data as Item[]) || []);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+
+  const loadNearby = async () => {
+    if (!navigator.geolocation) { toast.error("Geolocation not supported"); setNearby(false); return; }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { data, error } = await supabase.rpc("nearby_marketplace_items", {
+          buyer_lat: pos.coords.latitude,
+          buyer_lng: pos.coords.longitude,
+          radius_km: radiusKm,
+          category_filter: cat === "All" ? undefined : cat,
+          q: q || undefined,
+        });
+        if (error) toast.error(error.message);
+        setItems((data as Item[]) || []);
+        setGeoLoading(false);
+        setLoading(false);
+        if (!data || data.length === 0) toast.info(`No listings within ${radiusKm} km — try widening the radius.`);
+      },
+      () => { toast.error("Location permission denied"); setGeoLoading(false); setNearby(false); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  useEffect(() => {
+    if (nearby) loadNearby();
+    else loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nearby, radiusKm]);
 
   const filtered = useMemo(() => items.filter((i) => {
     if (cat !== "All" && i.category !== cat) return false;
@@ -72,6 +106,22 @@ function Marketplace() {
             </button>
           </div>
           <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setNearby((v) => !v)}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold border inline-flex items-center gap-1 ${nearby ? "bg-action text-action-foreground border-action" : "bg-card border-border"}`}
+            >
+              {geoLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Navigation className="h-3 w-3" />}
+              {nearby ? `Near me · ${radiusKm}km` : "Near me"}
+            </button>
+            {nearby && (
+              <select
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                className="shrink-0 rounded-full px-2 py-1.5 text-xs font-semibold bg-card border border-border"
+              >
+                {[25, 50, 100, 200, 500].map((r) => <option key={r} value={r}>{r} km</option>)}
+              </select>
+            )}
             {CATEGORIES.map((t) => (
               <button key={t} onClick={() => setCat(t)} className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold border ${cat === t ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>{t}</button>
             ))}
@@ -106,7 +156,10 @@ function Marketplace() {
                 </div>
                 <div className="mt-1.5 flex items-center justify-between gap-1">
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <MapPin className="h-3 w-3" />Karnataka
+                    <MapPin className="h-3 w-3" />
+                    {typeof i.distance_km === "number"
+                      ? `${i.distance_km.toFixed(1)} km away`
+                      : (i.district || i.state || "Karnataka")}
                   </span>
                   <TrustBadge variant="rsa" className="!px-1.5 !py-0.5 !text-[9px]" />
                 </div>
@@ -120,7 +173,7 @@ function Marketplace() {
         <ListItemSheet
           userId={user.id}
           onClose={() => setShowAdd(false)}
-          onCreated={() => { setShowAdd(false); load(); }}
+          onCreated={() => { setShowAdd(false); nearby ? loadNearby() : loadAll(); }}
         />
       )}
     </>
@@ -134,12 +187,25 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
   const [stock, setStock] = useState(10);
   const [unit, setUnit] = useState("quintal");
   const [saving, setSaving] = useState(false);
+  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+
+  const grabGeo = () =>
+    new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 8000 },
+      );
+    });
 
   const save = async () => {
     if (!name.trim()) { toast.error("Add a name"); return; }
     setSaving(true);
+    const loc = geo ?? (await grabGeo());
     const { error } = await supabase.from("marketplace_items").insert({
       seller_id: userId, name: name.trim(), category, price, stock, unit,
+      latitude: loc?.lat ?? null, longitude: loc?.lng ?? null, state: "Karnataka",
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -166,6 +232,14 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
             <Field label="Stock"><input type="number" value={stock} onChange={(e) => setStock(Number(e.target.value) || 0)} className="sg-input" /></Field>
             <Field label="Unit"><input value={unit} onChange={(e) => setUnit(e.target.value)} className="sg-input" /></Field>
           </div>
+          <button
+            type="button"
+            onClick={async () => { const g = await grabGeo(); setGeo(g); g ? toast.success("Location attached") : toast.error("Location unavailable"); }}
+            className={`w-full h-11 rounded-2xl border-2 text-xs font-bold inline-flex items-center justify-center gap-2 ${geo ? "border-primary bg-primary/10 text-primary" : "border-border bg-card"}`}
+          >
+            <MapPin className="h-4 w-4" />
+            {geo ? `Pinned · ${geo.lat.toFixed(3)},${geo.lng.toFixed(3)}` : "Attach my location (for Near Me)"}
+          </button>
           <button onClick={save} disabled={saving} className="w-full h-12 rounded-2xl gradient-primary text-primary-foreground font-bold disabled:opacity-60 flex items-center justify-center gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} List item
           </button>
