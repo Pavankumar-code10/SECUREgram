@@ -247,11 +247,16 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          district: string | null
           id: string
           image_url: string | null
+          latitude: number | null
+          location: unknown
+          longitude: number | null
           name: string
           price: number
           seller_id: string
+          state: string | null
           stock: number
           unit: string
           updated_at: string
@@ -259,11 +264,16 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string
+          district?: string | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
+          location?: unknown
+          longitude?: number | null
           name: string
           price: number
           seller_id: string
+          state?: string | null
           stock?: number
           unit?: string
           updated_at?: string
@@ -271,11 +281,16 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          district?: string | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
+          location?: unknown
+          longitude?: number | null
           name?: string
           price?: number
           seller_id?: string
+          state?: string | null
           stock?: number
           unit?: string
           updated_at?: string
@@ -741,6 +756,31 @@ export type Database = {
           quantity_quintal: number
           seller_id: string
           state: string
+        }[]
+      }
+      nearby_marketplace_items: {
+        Args: {
+          buyer_lat: number
+          buyer_lng: number
+          category_filter?: string
+          q?: string
+          radius_km?: number
+        }
+        Returns: {
+          category: string
+          created_at: string
+          distance_km: number
+          district: string
+          id: string
+          image_url: string
+          latitude: number
+          longitude: number
+          name: string
+          price: number
+          seller_id: string
+          state: string
+          stock: number
+          unit: string
         }[]
       }
       populate_geometry_columns:
