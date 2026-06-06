@@ -17,6 +17,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MatchRouteImport } from './routes/match'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as GoogleSigninRouteImport } from './routes/google-signin'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AuctionsRouteImport } from './routes/auctions'
@@ -62,6 +63,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoogleSigninRoute = GoogleSigninRouteImport.update({
+  id: '/google-signin',
+  path: '/google-signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/auctions': typeof AuctionsRoute
   '/chat': typeof ChatRoute
   '/dashboard': typeof DashboardRoute
+  '/google-signin': typeof GoogleSigninRoute
   '/login': typeof LoginRoute
   '/marketplace': typeof MarketplaceRoute
   '/match': typeof MatchRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/auctions': typeof AuctionsRoute
   '/chat': typeof ChatRoute
   '/dashboard': typeof DashboardRoute
+  '/google-signin': typeof GoogleSigninRoute
   '/login': typeof LoginRoute
   '/marketplace': typeof MarketplaceRoute
   '/match': typeof MatchRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/auctions': typeof AuctionsRoute
   '/chat': typeof ChatRoute
   '/dashboard': typeof DashboardRoute
+  '/google-signin': typeof GoogleSigninRoute
   '/login': typeof LoginRoute
   '/marketplace': typeof MarketplaceRoute
   '/match': typeof MatchRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/auctions'
     | '/chat'
     | '/dashboard'
+    | '/google-signin'
     | '/login'
     | '/marketplace'
     | '/match'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/auctions'
     | '/chat'
     | '/dashboard'
+    | '/google-signin'
     | '/login'
     | '/marketplace'
     | '/match'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/auctions'
     | '/chat'
     | '/dashboard'
+    | '/google-signin'
     | '/login'
     | '/marketplace'
     | '/match'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   AuctionsRoute: typeof AuctionsRoute
   ChatRoute: typeof ChatRoute
   DashboardRoute: typeof DashboardRoute
+  GoogleSigninRoute: typeof GoogleSigninRoute
   LoginRoute: typeof LoginRoute
   MarketplaceRoute: typeof MarketplaceRoute
   MatchRoute: typeof MatchRoute
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/google-signin': {
+      id: '/google-signin'
+      path: '/google-signin'
+      fullPath: '/google-signin'
+      preLoaderRoute: typeof GoogleSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuctionsRoute: AuctionsRoute,
   ChatRoute: ChatRoute,
   DashboardRoute: DashboardRoute,
+  GoogleSigninRoute: GoogleSigninRoute,
   LoginRoute: LoginRoute,
   MarketplaceRoute: MarketplaceRoute,
   MatchRoute: MatchRoute,
@@ -292,3 +313,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

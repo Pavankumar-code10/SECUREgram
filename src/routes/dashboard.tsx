@@ -1,17 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { MapPin, Bell, TrendingUp, Sprout, ShoppingCart, Sparkles, Users } from "lucide-react";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
 import { useUser, getInitials } from "@/lib/sg/user";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
-const crops = [
-  { name: "Rice", color: "var(--primary)", points: [40, 38, 42, 41, 45, 48, 52, 55, 58, 56, 60, 64] },
-  { name: "Tur", color: "var(--action)", points: [30, 32, 31, 35, 33, 38, 40, 42, 44, 43, 46, 49] },
-  { name: "Maize", color: "var(--earth)", points: [22, 24, 26, 25, 27, 28, 30, 32, 31, 34, 35, 36] },
-  { name: "Coconut", color: "oklch(0.6 0.12 200)", points: [50, 51, 49, 52, 54, 53, 55, 57, 58, 60, 59, 62] },
-];
+const cropData: Record<"7 days" | "30 days" | "90 days", { name: string; color: string; points: number[] }[]> = {
+  "7 days": [
+    { name: "Rice", color: "var(--primary)", points: [58, 62, 59, 61, 60, 63, 64] },
+    { name: "Tur", color: "var(--action)", points: [45, 43, 46, 44, 47, 48, 49] },
+    { name: "Maize", color: "var(--earth)", points: [33, 35, 34, 32, 35, 33, 36] },
+    { name: "Coconut", color: "oklch(0.6 0.12 200)", points: [59, 61, 60, 58, 61, 60, 62] },
+  ],
+  "30 days": [
+    { name: "Rice", color: "var(--primary)", points: [40, 38, 42, 41, 45, 48, 52, 55, 58, 56, 60, 64] },
+    { name: "Tur", color: "var(--action)", points: [30, 32, 31, 35, 33, 38, 40, 42, 44, 43, 46, 49] },
+    { name: "Maize", color: "var(--earth)", points: [22, 24, 26, 25, 27, 28, 30, 32, 31, 34, 35, 36] },
+    { name: "Coconut", color: "oklch(0.6 0.12 200)", points: [50, 51, 49, 52, 54, 53, 55, 57, 58, 60, 59, 62] },
+  ],
+  "90 days": [
+    { name: "Rice", color: "var(--primary)", points: [30, 35, 33, 38, 42, 40, 45, 43, 48, 52, 50, 55, 53, 58, 56, 60, 62, 64] },
+    { name: "Tur", color: "var(--action)", points: [25, 28, 26, 30, 32, 31, 35, 33, 38, 40, 39, 42, 41, 44, 43, 46, 48, 49] },
+    { name: "Maize", color: "var(--earth)", points: [18, 20, 19, 22, 24, 23, 26, 25, 27, 28, 30, 31, 29, 32, 31, 34, 35, 36] },
+    { name: "Coconut", color: "oklch(0.6 0.12 200)", points: [40, 42, 45, 43, 47, 46, 50, 49, 52, 54, 53, 55, 57, 58, 60, 59, 61, 62] },
+  ]
+};
 
 function Sparkline({ points, color }: { points: number[]; color: string }) {
   const w = 360, h = 140, max = 70, min = 20;
@@ -26,11 +42,16 @@ function Sparkline({ points, color }: { points: number[]; color: string }) {
 
 function Dashboard() {
   const user = useUser();
+  const { unreadCount, setIsOpen } = useNotifications();
+  const [period, setPeriod] = useState<"7 days" | "30 days" | "90 days">("30 days");
+  
   const name = user?.name || "Guest";
   const initials = getInitials(name);
+  const crops = cropData[period];
+
   return (
     <>
-      <div className="mobile-shell">
+      <div className="mobile-shell pb-28">
         {/* Top */}
         <div className="px-5 pt-12 pb-6 gradient-hero">
           <div className="flex items-center gap-3">
@@ -44,9 +65,17 @@ function Dashboard() {
                 <MapPin className="h-3 w-3" /> Mandya, Karnataka
               </div>
             </div>
-            <button className="h-11 w-11 rounded-full bg-card shadow-card grid place-items-center relative" aria-label="Notifications">
+            <button
+              onClick={() => setIsOpen(true)}
+              className="h-11 w-11 rounded-full bg-card shadow-card grid place-items-center relative hover:bg-muted/50 active:scale-95 transition-all"
+              aria-label="Notifications"
+            >
               <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-action" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-action text-white text-[10px] font-bold grid place-items-center animate-pulse border border-background shadow-sm">
+                  {unreadCount}
+                </span>
+              )}
             </button>
           </div>
 
@@ -66,8 +95,14 @@ function Dashboard() {
                   ₹/quintal <TrendingUp className="h-4 w-4 text-primary" />
                 </h2>
               </div>
-              <select className="text-xs font-semibold rounded-full bg-muted px-3 py-1.5 outline-none">
-                <option>30 days</option><option>7 days</option><option>90 days</option>
+              <select 
+                value={period}
+                onChange={(e) => setPeriod(e.target.value as any)}
+                className="text-xs font-semibold rounded-full bg-muted px-3 py-1.5 outline-none cursor-pointer border border-border hover:bg-muted/70 transition"
+              >
+                <option value="7 days">7 days</option>
+                <option value="30 days">30 days</option>
+                <option value="90 days">90 days</option>
               </select>
             </div>
 

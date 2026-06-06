@@ -115,14 +115,24 @@ function Sell() {
     );
   };
 
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
-    if (f.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
-    const reader = new FileReader();
-    reader.onload = () => { setPhoto(reader.result as string); toast.success("Photo uploaded"); };
-    reader.readAsDataURL(f);
+    
+    try {
+      const { resizeAndCompressImage } = await import("@/lib/sg/image");
+      const resizedBlob = await resizeAndCompressImage(f, 600, 600);
+      const reader = new FileReader();
+      reader.onload = () => { 
+        setPhoto(reader.result as string); 
+        toast.success("Photo uploaded & auto-resized to 600x600px"); 
+      };
+      reader.readAsDataURL(resizedBlob);
+    } catch (err) {
+      toast.error("Failed to process image");
+      console.error(err);
+    }
     e.target.value = "";
   };
 
@@ -177,7 +187,7 @@ function Sell() {
 
   return (
     <>
-      <div className="mobile-shell">
+      <div className="mobile-shell pb-28">
         <TopBar
           title="Sell My Produce"
           subtitle="ಉತ್ಪನ್ನ ಪಟ್ಟಿಮಾಡಿ"

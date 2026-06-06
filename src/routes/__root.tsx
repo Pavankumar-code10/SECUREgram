@@ -120,13 +120,19 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { NotificationProvider } from "@/hooks/useNotifications";
+import { NotificationSheet } from "@/components/sg/NotificationSheet";
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster position="top-center" richColors />
+      <NotificationProvider>
+        <Outlet />
+        <NotificationSheet />
+        <Toaster position="top-center" richColors />
+      </NotificationProvider>
     </QueryClientProvider>
   );
 }

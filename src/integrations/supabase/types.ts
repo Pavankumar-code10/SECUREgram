@@ -736,6 +736,16 @@ export type Database = {
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       gettransactionid: { Args: never; Returns: unknown }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      check_user_exists: {
+        Args: {
+          p_email: string
+          p_phone: string
+        }
+        Returns: {
+          email_exists: boolean
+          phone_exists: boolean
+        }[]
+      }
       nearby_listings: {
         Args: {
           buyer_lat: number

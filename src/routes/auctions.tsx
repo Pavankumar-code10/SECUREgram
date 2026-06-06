@@ -80,7 +80,7 @@ function Auctions() {
 
   return (
     <>
-      <div className="mobile-shell">
+      <div className="mobile-shell pb-28">
         <TopBar
           title="Procurement Auctions"
           subtitle="Live bidding • RSA-signed"
@@ -271,7 +271,7 @@ function CreateAuctionSheet({ userId, onClose, onCreated }: { userId: string; on
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 grid place-items-end animate-fade-in" onClick={onClose}>
-      <div className="mobile-shell w-full" onClick={(e) => e.stopPropagation()}>
+      <div className="mx-auto max-w-[428px] w-full" onClick={(e) => e.stopPropagation()}>
         <div className="rounded-t-3xl bg-card p-6 animate-slide-up space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold">New auction</h3>

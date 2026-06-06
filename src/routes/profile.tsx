@@ -50,10 +50,13 @@ function Profile() {
     e.target.value = "";
     if (!f || !user) return;
     if (!f.type.startsWith("image/")) { toast.error("Pick an image"); return; }
-    if (f.size > 5 * 1024 * 1024) { toast.error("Under 5MB please"); return; }
     setUploading(true);
     try {
-      const path = await uploadAvatar(user.id, f);
+      const { resizeAndCompressImage } = await import("@/lib/sg/image");
+      const resizedBlob = await resizeAndCompressImage(f, 600, 600);
+      const resizedFile = new File([resizedBlob], f.name, { type: "image/jpeg" });
+
+      const path = await uploadAvatar(user.id, resizedFile);
       const { error } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
       if (error) throw error;
       await refreshUser();
@@ -83,7 +86,7 @@ function Profile() {
 
   return (
     <>
-      <div className="mobile-shell">
+      <div className="mobile-shell pb-28">
         <TopBar title="Profile" subtitle="ಪ್ರೊಫೈಲ್" />
 
         <div className="px-5 py-5">
