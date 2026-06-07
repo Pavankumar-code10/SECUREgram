@@ -12,6 +12,7 @@ import {
   Share,
   Switch,
   SafeAreaView,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
