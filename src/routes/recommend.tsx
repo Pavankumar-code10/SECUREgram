@@ -273,7 +273,7 @@ function Recommend() {
             <div className="mt-5 space-y-3 animate-fade-in">
               <p className="text-xs font-semibold text-muted-foreground px-1">Top picks based on region and soil type</p>
               {recs.map((r, idx) => (
-                <div key={r.crop} className="rounded-3xl bg-card shadow-card border border-border p-4">
+                <div key={r.crop} className="rounded-[24px] bg-card shadow-card border border-border p-4 card-interactive">
                   <div className="flex items-start gap-3">
                     <div className="h-12 w-12 rounded-2xl bg-muted grid place-items-center text-2xl">{r.emoji}</div>
                     <div className="flex-1">

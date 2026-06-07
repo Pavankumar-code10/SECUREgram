@@ -18,6 +18,13 @@ function Match() {
   const [loadingListing, setLoadingListing] = useState(false);
 
   useEffect(() => {
+    if (user && user.role === "buyer") {
+      toast.error("Smart Matches are only available for Farmers/Sellers.");
+      navigate({ to: "/dashboard" });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
     if (!user) return;
     setLoadingListing(true);
     supabase
@@ -58,7 +65,8 @@ function Match() {
       }
 
       // 2. Otherwise create a mock buyer user in the background
-      const email = `${matchName.toLowerCase().replace(/[^a-z0-9]/g, "")}@securegram.com`;
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      const email = `${matchName.toLowerCase().replace(/[^a-z0-9]/g, "")}_${rand}@securegram.com`;
       const password = "Password123!";
       
       const { createClient } = await import("@supabase/supabase-js");
@@ -124,7 +132,7 @@ function Match() {
         />
         <div className="px-5 py-4 space-y-3">
           {dynamicMatches.map((m) => (
-            <div key={m.name} className="rounded-3xl bg-card shadow-card border border-border p-4 animate-fade-in">
+            <div key={m.name} className="rounded-[24px] bg-card shadow-card border border-border p-4 animate-fade-in card-interactive">
               <div className="flex items-start gap-3">
                 <div className="h-12 w-12 rounded-2xl gradient-primary grid place-items-center text-primary-foreground font-bold text-lg">
                   {m.initial}

@@ -54,16 +54,23 @@ function Profile() {
     try {
       const { resizeAndCompressImage } = await import("@/lib/sg/image");
       const resizedBlob = await resizeAndCompressImage(f, 600, 600);
-      const resizedFile = new File([resizedBlob], f.name, { type: "image/jpeg" });
-
-      const path = await uploadAvatar(user.id, resizedFile);
-      const { error } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
-      if (error) throw error;
-      await refreshUser();
-      toast.success("Avatar updated");
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(resizedBlob);
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        const { error } = await supabase.from("profiles").update({ avatar_url: base64data }).eq("id", user.id);
+        if (error) {
+          toast.error(error.message);
+          setUploading(false);
+          return;
+        }
+        await refreshUser();
+        toast.success("Avatar updated");
+        setUploading(false);
+      };
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
-    } finally {
       setUploading(false);
     }
   };
@@ -100,7 +107,7 @@ function Profile() {
                   aria-label="Change avatar"
                 >
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    <img src={avatarUrl} alt="" className="w-full h-full object-fill" />
                   ) : (
                     <span>{initials}</span>
                   )}

@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Leaf, Plus, ShoppingCart, MessageCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/lib/sg/user";
 
 const items: { to: string; icon: typeof Leaf; label: string; badge?: number }[] = [
   { to: "/dashboard", icon: Leaf, label: "Home" },
@@ -12,12 +13,21 @@ const items: { to: string; icon: typeof Leaf; label: string; badge?: number }[] 
 
 export function BottomNav() {
   const { pathname } = useLocation();
+  const user = useUser();
+
+  const filteredItems = items.filter((item) => {
+    if (user?.role === "buyer" && item.to === "/sell") {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 pointer-events-none">
       <div className="mx-auto max-w-[428px] pointer-events-auto">
         <div className="glass border-t border-border px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <ul className="flex items-end justify-between">
-            {items.map(({ to, icon: Icon, label, badge }) => {
+            {filteredItems.map(({ to, icon: Icon, label, badge }) => {
               const active = pathname === to || (to === "/dashboard" && pathname === "/");
               return (
                 <li key={to} className="flex-1">

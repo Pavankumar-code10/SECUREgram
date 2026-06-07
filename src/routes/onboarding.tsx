@@ -28,7 +28,7 @@ function Onboarding() {
         <Link
           to="/login"
           search={{ role: "farmer" }}
-          className="block rounded-3xl bg-card shadow-card p-6 border border-border active:scale-[0.98] transition-transform"
+          className="block rounded-[24px] bg-card shadow-card p-6 border border-border card-interactive"
         >
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-2xl gradient-primary grid place-items-center">
@@ -44,7 +44,7 @@ function Onboarding() {
         <Link
           to="/login"
           search={{ role: "buyer" }}
-          className="block rounded-3xl bg-card shadow-card p-6 border border-border active:scale-[0.98] transition-transform"
+          className="block rounded-[24px] bg-card shadow-card p-6 border border-border card-interactive"
         >
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-2xl gradient-action grid place-items-center">

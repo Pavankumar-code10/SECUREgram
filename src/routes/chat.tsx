@@ -57,14 +57,26 @@ function Inbox({ me }: { me: string }) {
     });
     const ids = Array.from(seen.keys());
 
+    // Fetch profiles of all conversation partners
+    let msgProfiles: any[] = [];
+    if (ids.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id,name,avatar_url")
+        .in("id", ids);
+      if (profs) msgProfiles = profs;
+    }
+
     // also include other profiles so user can start a chat
     const { data: allProfiles } = await supabase
       .from("profiles").select("id,name,avatar_url").neq("id", me).limit(20);
 
     const merged = new Map<string, Contact & { last: string; when: string }>();
     (allProfiles || []).forEach((p: any) => merged.set(p.id, { ...p, last: "Start a conversation", when: "" }));
+    msgProfiles.forEach((p: any) => merged.set(p.id, { ...p, last: "Start a conversation", when: "" }));
+    
     ids.forEach((id) => {
-      const m = merged.get(id) || { id, name: id.slice(0, 6), avatar_url: null, last: "", when: "" };
+      const m = merged.get(id) || { id, name: "User " + id.slice(0, 6), avatar_url: null, last: "", when: "" };
       const s = seen.get(id)!;
       merged.set(id, { ...m, last: s.last, when: s.when });
     });
@@ -294,7 +306,7 @@ function Thread({ me, other, initialName }: { me: string; other: string; initial
                       <img 
                         src={imageUrl} 
                         alt="Attachment" 
-                        className="rounded-xl max-w-full h-auto max-h-60 object-cover cursor-pointer border border-border" 
+                        className="rounded-xl max-w-full h-auto max-h-60 object-fill cursor-pointer border border-border" 
                         onClick={() => window.open(imageUrl, "_blank")}
                       />
                       <p className="text-[10px] opacity-75">📸 Image Attachment</p>

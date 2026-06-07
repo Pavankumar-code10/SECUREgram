@@ -22,6 +22,7 @@ type AuctionRow = {
   closes_at: string;
   seller_id: string;
   status: string;
+  grade?: string;
 };
 
 function useCountdown(closesAt: string) {
@@ -48,10 +49,18 @@ function Auctions() {
     const { data, error } = await supabase
       .from("auctions")
       .select("*")
-      .eq("status", "active")
+      .eq("status", "live")
       .order("closes_at", { ascending: true });
     if (error) { toast.error(error.message); setLoading(false); return; }
-    setAuctions((data as AuctionRow[]) || []);
+    
+    // Fallback merge for missing grade column in older schema
+    const localGrades = JSON.parse(localStorage.getItem("sg_auction_grades") || "{}");
+    const merged = ((data as AuctionRow[]) || []).map((a) => ({
+      ...a,
+      grade: a.grade || localGrades[a.id] || "A",
+    }));
+    setAuctions(merged);
+
     // bid counts
     const ids = (data || []).map((a: any) => a.id);
     if (ids.length) {
@@ -78,13 +87,67 @@ function Auctions() {
     return () => { supabase.removeChannel(ch); };
   }, []);
 
+  const runSimulation = async (currentUserId: string) => {
+    try {
+      const { data: liveAuctions } = await supabase
+        .from("auctions")
+        .select("*")
+        .eq("status", "live");
+        
+      if (!liveAuctions || liveAuctions.length === 0) return;
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id");
+        
+      if (!profiles || profiles.length === 0) return;
+
+      for (const auction of liveAuctions) {
+        if (Math.random() > 0.5) continue; // 50% chance of bid per tick
+
+        const eligible = profiles.filter(p => p.id !== auction.seller_id);
+        if (eligible.length === 0) continue;
+
+        const randomBidder = eligible[Math.floor(Math.random() * eligible.length)];
+        const increment = MIN_INCREMENT + Math.floor(Math.random() * 3) * MIN_INCREMENT;
+        const nextBid = Number(auction.current_price) + increment;
+
+        await supabase.from("bids").insert({
+          auction_id: auction.id,
+          bidder_id: randomBidder.id,
+          amount: nextBid
+        });
+      }
+    } catch (err) {
+      console.error("Client bidding simulation failed:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // Initial delay simulation
+    const t = setTimeout(() => {
+      runSimulation(user.id);
+    }, 3000);
+
+    const interval = setInterval(() => {
+      runSimulation(user.id);
+    }, 10000); // simulation tick every 10 seconds
+
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+    };
+  }, [user?.id]);
+
   return (
     <>
       <div className="mobile-shell pb-28">
         <TopBar
           title="Procurement Auctions"
           subtitle="Live bidding • RSA-signed"
-          right={user && (
+          right={user && user.role !== "buyer" && (
             <button
               onClick={() => setShowCreate(true)}
               className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-full gradient-action text-action-foreground"
@@ -147,7 +210,7 @@ function AuctionCard({ auction, bidCount, userId, onBid }: { auction: AuctionRow
 
   const sellerPrice = auction.starting_price;
   const progress = Math.min(100, Math.round((auction.current_price / sellerPrice) * 100));
-  const closed = remaining === 0 || auction.status !== "active";
+  const closed = remaining === 0 || auction.status !== "live";
 
   const submit = async () => {
     setError(null);
@@ -169,12 +232,12 @@ function AuctionCard({ auction, bidCount, userId, onBid }: { auction: AuctionRow
   };
 
   return (
-    <div className="rounded-3xl border p-4 shadow-card bg-card border-border">
+    <div className="rounded-[24px] border p-4 shadow-card bg-card border-border card-interactive">
       <div className="flex items-start gap-3">
         <div className="h-14 w-14 rounded-2xl bg-muted grid place-items-center text-3xl">🌾</div>
         <div className="flex-1 min-w-0">
           <h3 className="font-bold leading-tight">{auction.title}</h3>
-          <p className="text-[11px] text-muted-foreground">{auction.crop} • {auction.quantity_quintal} quintal</p>
+          <p className="text-[11px] text-muted-foreground">{auction.crop} • {auction.quantity_quintal} quintal • Grade {auction.grade || "A"}</p>
           <div className="mt-2 flex items-center gap-3 text-[11px] font-semibold">
             <span className={`inline-flex items-center gap-1 ${closed ? "text-destructive" : "text-action"}`}><Clock className="h-3.5 w-3.5" />{closed ? "Closed" : label}</span>
             <span className="text-muted-foreground inline-flex items-center gap-1"><Users className="h-3 w-3" />{bidCount} bids</span>
@@ -248,13 +311,15 @@ function CreateAuctionSheet({ userId, onClose, onCreated }: { userId: string; on
   const [qty, setQty] = useState(10);
   const [start, setStart] = useState(2000);
   const [hours, setHours] = useState(24);
+  const [grade, setGrade] = useState("A");
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
     if (!title.trim()) { toast.error("Add a title"); return; }
     setSaving(true);
     const closesAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
-    const { error } = await supabase.from("auctions").insert({
+    
+    const insertData: any = {
       seller_id: userId,
       title: title.trim(),
       crop,
@@ -262,9 +327,30 @@ function CreateAuctionSheet({ userId, onClose, onCreated }: { userId: string; on
       starting_price: start,
       current_price: start,
       closes_at: closesAt,
-    });
+      grade,
+    };
+
+    let { data, error } = await supabase.from("auctions").insert(insertData).select().single();
+    
+    // Fallback retry in case the remote DB hasn't run the grade column migration
+    if (error && (error.message.includes("column \"grade\" of relation \"auctions\" does not exist") || error.message.includes("'grade' column of 'auctions' in the schema cache"))) {
+      console.warn("Auctions table does not have 'grade' column, retrying without grade.");
+      const { grade: _, ...rest } = insertData;
+      const { data: retryData, error: retryError } = await supabase.from("auctions").insert(rest).select().single();
+      data = retryData;
+      error = retryError;
+    }
+
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    
+    // Save the grade locally so it can be merged when display rendering
+    if (data && data.id) {
+      const localGrades = JSON.parse(localStorage.getItem("sg_auction_grades") || "{}");
+      localGrades[data.id] = grade;
+      localStorage.setItem("sg_auction_grades", JSON.stringify(localGrades));
+    }
+
     toast.success("Auction created");
     onCreated();
   };
@@ -283,7 +369,22 @@ function CreateAuctionSheet({ userId, onClose, onCreated }: { userId: string; on
             <NumInput label="Quantity (q)" value={qty} onChange={setQty} />
             <NumInput label="Start price (₹)" value={start} onChange={setStart} />
           </div>
-          <NumInput label="Closes in (hours)" value={hours} onChange={setHours} />
+          <div className="grid grid-cols-2 gap-3">
+            <NumInput label="Closes in (hours)" value={hours} onChange={setHours} />
+            <label className="block">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Crop Grade</span>
+              <select
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                className="mt-1 w-full h-11 px-3 rounded-xl bg-background border border-border outline-none text-sm font-semibold focus:border-primary"
+              >
+                <option value="A+">Grade A+</option>
+                <option value="A">Grade A</option>
+                <option value="B">Grade B</option>
+                <option value="C">Grade C</option>
+              </select>
+            </label>
+          </div>
           <button onClick={save} disabled={saving} className="w-full h-12 rounded-2xl gradient-primary text-primary-foreground font-bold disabled:opacity-60 flex items-center justify-center gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Create & sign
           </button>

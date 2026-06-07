@@ -19,23 +19,8 @@ export function resizeAndCompressImage(file: File, targetWidth = 600, targetHeig
           return;
         }
 
-        // Draw image stretched or centered to the fixed target size
-        // Crop-center the image (fill cover style):
-        const imgRatio = img.width / img.height;
-        const targetRatio = targetWidth / targetHeight;
-        let sx = 0, sy = 0, sw = img.width, sh = img.height;
-
-        if (imgRatio > targetRatio) {
-          // Image is wider
-          sw = img.height * targetRatio;
-          sx = (img.width - sw) / 2;
-        } else {
-          // Image is taller
-          sh = img.width / targetRatio;
-          sy = (img.height - sh) / 2;
-        }
-
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+        // Squeeze the image completely (no cropping)
+        ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, targetWidth, targetHeight);
 
         canvas.toBlob(
           (blob) => {

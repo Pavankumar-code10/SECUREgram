@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Search, SlidersHorizontal, MapPin, ShieldCheck, Plus, X, Loader2, Navigation, ArrowLeft } from "lucide-react";
+import { Search, SlidersHorizontal, MapPin, ShieldCheck, Plus, X, Loader2, Navigation, ArrowLeft, Trash2 } from "lucide-react";
 import { TopBar } from "@/components/sg/TopBar";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
@@ -7,6 +7,8 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/lib/sg/user";
 import { toast } from "sonner";
+import { ensureStorageConfigured } from "@/lib/mandi.functions";
+import { useSignedUrl } from "@/lib/sg/avatar";
 
 export const Route = createFileRoute("/marketplace")({ component: Marketplace });
 
@@ -74,6 +76,16 @@ function Marketplace() {
   };
 
   useEffect(() => {
+    ensureStorageConfigured()
+      .then((res) => {
+        console.log("ensureStorageConfigured result:", res);
+      })
+      .catch((err) => {
+        console.error("Failed to run ensureStorageConfigured:", err);
+      });
+  }, []);
+
+  useEffect(() => {
     if (nearby) loadNearby();
     else loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,7 +103,7 @@ function Marketplace() {
         <TopBar
           title="Marketplace"
           subtitle="Verified Karnataka produce"
-          right={user && (
+          right={user && user.role !== "buyer" && (
             <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-full gradient-action text-action-foreground">
               <Plus className="h-3 w-3" /> List
             </button>
@@ -144,32 +156,7 @@ function Marketplace() {
 
         <div className="px-5 py-3 grid grid-cols-2 gap-3">
           {filtered.map((i) => (
-            <div 
-              key={i.id} 
-              onClick={() => setSelectedItem(i)} 
-              className="rounded-3xl bg-card shadow-card border border-border overflow-hidden cursor-pointer hover:border-primary active:scale-[0.98] transition-all"
-            >
-              <div className="aspect-square bg-muted/60 grid place-items-center text-6xl overflow-hidden">
-                {i.image_url ? <img src={i.image_url} alt={i.name} className="w-full h-full object-cover" /> : (EMOJI[i.category] || "📦")}
-              </div>
-              <div className="p-3">
-                <h3 className="text-sm font-bold leading-tight line-clamp-2">{i.name}</h3>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">{i.stock} {i.unit} available</p>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-base font-bold">₹{i.price.toLocaleString("en-IN")}</span>
-                  <span className="text-[10px] text-muted-foreground">/{i.unit}</span>
-                </div>
-                <div className="mt-1.5 flex items-center justify-between gap-1">
-                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    {typeof i.distance_km === "number"
-                      ? `${i.distance_km.toFixed(1)} km away`
-                      : (i.district || i.state || "Karnataka")}
-                  </span>
-                  <TrustBadge variant="rsa" className="!px-1.5 !py-0.5 !text-[9px]" />
-                </div>
-              </div>
-            </div>
+            <ItemCard key={i.id} item={i} onClick={() => setSelectedItem(i)} />
           ))}
         </div>
       </div>
@@ -185,15 +172,51 @@ function Marketplace() {
         <ItemDetailSheet
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
+          onDeleted={() => {
+            setSelectedItem(null);
+            if (nearby) loadNearby();
+            else loadAll();
+          }}
         />
       )}
     </>
   );
 }
 
+function ItemCard({ item, onClick }: { item: Item; onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      className="rounded-[24px] bg-card shadow-card border border-border overflow-hidden cursor-pointer card-interactive"
+    >
+      <div className="aspect-square bg-muted/60 grid place-items-center text-6xl overflow-hidden">
+        {EMOJI[item.category] || "📦"}
+      </div>
+      <div className="p-3">
+        <h3 className="text-sm font-bold leading-tight line-clamp-2">{item.name}</h3>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">{item.stock} {item.unit} available</p>
+        <div className="mt-2 flex items-baseline gap-1">
+          <span className="text-base font-bold">₹{item.price.toLocaleString("en-IN")}</span>
+          <span className="text-[10px] text-muted-foreground">/{item.unit}</span>
+        </div>
+        <div className="mt-1.5 flex items-center justify-between gap-1">
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <MapPin className="h-3 w-3" />
+            {typeof item.distance_km === "number"
+              ? `${item.distance_km.toFixed(1)} km away`
+              : (item.district || item.state || "Karnataka")}
+          </span>
+          <TrustBadge variant="rsa" className="!px-1.5 !py-0.5 !text-[9px]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface ItemDetailSheetProps {
   item: Item;
   onClose: () => void;
+  onDeleted?: () => void;
 }
 
 const getMockSeller = (id: string, itemDistrict?: string | null, itemState?: string | null) => {
@@ -222,9 +245,10 @@ const getMockSeller = (id: string, itemDistrict?: string | null, itemState?: str
   };
 };
 
-function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
+function ItemDetailSheet({ item, onClose, onDeleted }: ItemDetailSheetProps) {
   const navigate = useNavigate();
   const user = useUser();
+  const imageUrl = useSignedUrl(item.image_url);
   const [seller, setSeller] = useState<any>(null);
   const [loadingSeller, setLoadingSeller] = useState(true);
   const [buyQty, setBuyQty] = useState(1);
@@ -232,6 +256,25 @@ function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
   const [connecting, setConnecting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"upi" | "escrow" | "cod">("upi");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to remove this listing?")) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("marketplace_items")
+        .delete()
+        .eq("id", item.id);
+      if (error) throw error;
+      toast.success("Listing removed successfully");
+      if (onDeleted) onDeleted();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove listing");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     setLoadingSeller(true);
@@ -273,7 +316,7 @@ function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
     setBuying(true);
     const orderTotal = item.price * buyQty + 50;
     const txId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
-    
+
     const newTx = {
       id: txId,
       buyer_id: user.id,
@@ -392,7 +435,7 @@ function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
       navigate({ to: "/transactions" });
     } catch (err: any) {
       console.error("Checkout execution error:", err);
-      
+
       // Fallback: save locally
       const localTxs = JSON.parse(localStorage.getItem("sg_transactions") || "[]");
       localTxs.unshift(newTx);
@@ -463,10 +506,10 @@ function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
             {/* Payment Method Selector */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Select Payment Method</h4>
-              
+
               <div className="space-y-2">
                 {/* UPI Card */}
-                <div 
+                <div
                   onClick={() => setPaymentMethod("upi")}
                   className={`border rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all ${paymentMethod === "upi" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/30"}`}
                 >
@@ -483,7 +526,7 @@ function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
                 </div>
 
                 {/* Escrow Card */}
-                <div 
+                <div
                   onClick={() => setPaymentMethod("escrow")}
                   className={`border rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all ${paymentMethod === "escrow" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/30"}`}
                 >
@@ -503,7 +546,7 @@ function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
                 </div>
 
                 {/* COD Card */}
-                <div 
+                <div
                   onClick={() => setPaymentMethod("cod")}
                   className={`border rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all ${paymentMethod === "cod" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/30"}`}
                 >
@@ -567,9 +610,14 @@ function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
     <div className="fixed inset-0 z-50 bg-black/50 grid place-items-end" onClick={onClose}>
       <div className="mx-auto max-w-[428px] w-full" onClick={(e) => e.stopPropagation()}>
         <div className="rounded-t-3xl bg-card p-6 space-y-4 animate-slide-up">
+          {imageUrl && (
+            <div className="w-full h-44 rounded-2xl overflow-hidden border border-border bg-muted/30">
+              <img src={imageUrl} alt={item.name} className="w-full h-full object-fill" />
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-3xl">{EMOJI[item.category] || "📦"}</span>
+              {!imageUrl && <span className="text-3xl">{EMOJI[item.category] || "📦"}</span>}
               <div>
                 <h3 className="text-lg font-bold leading-tight">{item.name}</h3>
                 <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-[10px] font-bold uppercase">{item.category}</span>
@@ -628,24 +676,37 @@ function ItemDetailSheet({ item, onClose }: ItemDetailSheetProps) {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <button
-              onClick={handleChat}
-              disabled={connecting || user?.id === item.seller_id}
-              className="h-12 rounded-2xl bg-muted font-bold text-sm flex items-center justify-center gap-1.5 border border-border hover:bg-muted/70 disabled:opacity-50 transition"
-            >
-              <Search className="h-4 w-4" />
-              Chat with Seller
-            </button>
-            <button
-              onClick={handleBuy}
-              disabled={buying || item.stock <= 0 || user?.id === item.seller_id}
-              className="h-12 rounded-2xl gradient-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 hover:opacity-90 transition shadow-elev"
-            >
-              <ShieldCheck className="h-4 w-4" />
-              {item.stock <= 0 ? "Out of Stock" : "Buy Now"}
-            </button>
-          </div>
+          {user && user.id === item.seller_id ? (
+            <div className="pt-2">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="w-full h-12 rounded-2xl bg-destructive hover:bg-destructive/90 text-white font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition shadow-elev"
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                <span>Remove Listing</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={handleChat}
+                disabled={connecting || user?.id === item.seller_id}
+                className="h-12 rounded-2xl bg-muted font-bold text-sm flex items-center justify-center gap-1.5 border border-border hover:bg-muted/70 disabled:opacity-50 transition"
+              >
+                <Search className="h-4 w-4" />
+                Chat with Seller
+              </button>
+              <button
+                onClick={handleBuy}
+                disabled={buying || item.stock <= 0 || user?.id === item.seller_id}
+                className="h-12 rounded-2xl gradient-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 hover:opacity-90 transition shadow-elev"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                {item.stock <= 0 ? "Out of Stock" : "Buy Now"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -660,7 +721,7 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
   const [unit, setUnit] = useState("quintal");
   const [saving, setSaving] = useState(false);
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
-  
+
   const [photo, setPhoto] = useState<string | null>(null);
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -679,12 +740,12 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
-    
+
     try {
       const { resizeAndCompressImage } = await import("@/lib/sg/image");
       const resizedBlob = await resizeAndCompressImage(f, 600, 600);
       const resizedFile = new File([resizedBlob], f.name, { type: "image/jpeg" });
-      
+
       setFileToUpload(resizedFile);
       const reader = new FileReader();
       reader.onload = () => { setPhoto(reader.result as string); };
@@ -700,22 +761,12 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
   const save = async () => {
     if (!name.trim()) { toast.error("Add a name"); return; }
     setSaving(true);
-    
+
     try {
       let imgUrl: string | null = null;
-      
-      if (fileToUpload) {
-        const ext = fileToUpload.name.split(".").pop() || "jpg";
-        const path = `${userId}/marketplace/item-${Date.now()}.${ext}`;
-        
-        const { error: uploadError } = await supabase.storage.from("avatars").upload(path, fileToUpload, {
-          upsert: true,
-          contentType: "image/jpeg"
-        });
-        if (uploadError) throw uploadError;
-        
-        const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(path);
-        imgUrl = publicData.publicUrl;
+
+      if (photo) {
+        imgUrl = photo;
       }
 
       const loc = geo ?? (await grabGeo());
@@ -758,10 +809,10 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
             <input ref={fileInputRef} type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
             {photo ? (
               <div className="relative rounded-2xl overflow-hidden border border-border h-32 w-full">
-                <img src={photo} alt="Item Preview" className="w-full h-full object-cover" />
-                <button 
-                  type="button" 
-                  onClick={() => { setPhoto(null); setFileToUpload(null); }} 
+                <img src={photo} alt="Item Preview" className="w-full h-full object-fill" />
+                <button
+                  type="button"
+                  onClick={() => { setPhoto(null); setFileToUpload(null); }}
                   className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 text-white grid place-items-center hover:bg-black/80 transition"
                 >
                   <X className="h-4 w-4" />
@@ -774,7 +825,7 @@ function ListItemSheet({ userId, onClose, onCreated }: { userId: string; onClose
                 className="w-full h-24 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 flex flex-col items-center justify-center text-center transition"
               >
                 <span className="text-2xl">📸</span>
-                <span className="text-xs font-bold mt-1 text-primary">Add photo (auto-resized to 600x600px)</span>
+                <span className="text-xs font-bold mt-1 text-primary">Add photo (squeezed to fit)</span>
                 <span className="text-[10px] text-muted-foreground">JPG/PNG up to 5MB</span>
               </button>
             )}

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { MapPin, Bell, TrendingUp, Sprout, ShoppingCart, Sparkles, Users } from "lucide-react";
+import { MapPin, Bell, TrendingUp, Sprout, ShoppingCart, Sparkles, Users, MessageCircle, Receipt } from "lucide-react";
 import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
 import { useUser, getInitials } from "@/lib/sg/user";
@@ -59,10 +59,11 @@ function Dashboard() {
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">Hello, ನಮಸ್ಕಾರ</p>
+              <p className="text-xs text-muted-foreground">Hello, ನಮಸ್ಕಾರ ({user?.role === "buyer" ? "Buyer" : "Farmer"})</p>
               <h1 className="text-xl font-bold truncate">{name}!</h1>
               <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                <MapPin className="h-3 w-3" /> Mandya, Karnataka
+                <MapPin className="h-3 w-3" />
+                <span>{[user?.district || "Mandya", user?.state || "Karnataka"].filter(Boolean).join(", ")}</span>
               </div>
             </div>
             <button
@@ -128,10 +129,21 @@ function Dashboard() {
         <div className="mt-6 px-5">
           <h2 className="text-base font-bold">Quick actions</h2>
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <ActionCard to="/sell" icon={Sprout} label="Sell Produce" sub="ಮಾರಾಟ ಮಾಡಿ" tone="primary" />
-            <ActionCard to="/marketplace" icon={ShoppingCart} label="Buy Inputs" sub="Seeds & inputs" tone="earth" />
-            <ActionCard to="/recommend" icon={Sparkles} label="Crop Advice" sub="ACRE AI" tone="action" />
-            <ActionCard to="/match" icon={Users} label="Smart Match" sub="Find buyers" tone="primary" />
+            {user?.role === "buyer" ? (
+              <>
+                <ActionCard to="/marketplace" icon={ShoppingCart} label="Explore Produce" sub="ಖರೀದಿ ಮಾಡಿ" tone="primary" />
+                <ActionCard to="/transactions" icon={Receipt} label="My Orders" sub="ಖರೀದಿ ಇತಿಹಾಸ" tone="earth" />
+                <ActionCard to="/auctions" icon={TrendingUp} label="Live Auctions" sub="Bid on crops" tone="action" />
+                <ActionCard to="/chat" icon={MessageCircle} label="Farmer Chat" sub="ಚಾಟ್ ಮಾಡಿ" tone="primary" />
+              </>
+            ) : (
+              <>
+                <ActionCard to="/sell" icon={Sprout} label="Sell Produce" sub="ಮಾರಾಟ ಮಾಡಿ" tone="primary" />
+                <ActionCard to="/marketplace" icon={ShoppingCart} label="Buy Inputs" sub="Seeds & inputs" tone="earth" />
+                <ActionCard to="/recommend" icon={Sparkles} label="Crop Advice" sub="ACRE AI" tone="action" />
+                <ActionCard to="/match" icon={Users} label="Smart Match" sub="Find buyers" tone="primary" />
+              </>
+            )}
           </div>
         </div>
 
@@ -141,10 +153,20 @@ function Dashboard() {
             <h2 className="text-base font-bold">Live auctions</h2>
             <Link to="/auctions" className="text-xs font-semibold text-primary">See all</Link>
           </div>
-          <Link
-            to="/auctions"
-            className="mt-3 block rounded-3xl bg-card shadow-card border border-border p-4"
-          >
+        <Link
+          to="/auctions"
+          className="mt-3 block rounded-[24px] bg-card shadow-card border border-border p-4 card-interactive"
+        >
+          {user?.role === "buyer" ? (
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-action/15 grid place-items-center text-2xl">🌾</div>
+              <div className="flex-1">
+                <p className="font-bold">Organic Sona Masuri — 120 quintals</p>
+                <p className="text-xs text-muted-foreground">Closing in 03:45:12 • 12 bids</p>
+              </div>
+              <span className="text-action font-bold">₹2,450/q</span>
+            </div>
+          ) : (
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-2xl bg-action/15 grid place-items-center text-2xl">🌾</div>
               <div className="flex-1">
@@ -153,27 +175,28 @@ function Dashboard() {
               </div>
               <span className="text-action font-bold">₹1,240</span>
             </div>
-          </Link>
-        </div>
+          )}
+        </Link>
       </div>
-      <BottomNav />
-    </>
-  );
+    </div>
+    <BottomNav />
+  </>
+);
 }
 
 function ActionCard({
-  to, icon: Icon, label, sub, tone,
+to, icon: Icon, label, sub, tone,
 }: { to: string; icon: any; label: string; sub: string; tone: "primary" | "action" | "earth" }) {
-  const cls = {
-    primary: "gradient-primary text-primary-foreground",
-    action: "gradient-action text-action-foreground",
-    earth: "bg-earth text-earth-foreground",
-  }[tone];
-  return (
-    <Link
-      to={to as any}
-      className="rounded-3xl bg-card shadow-card border border-border p-4 active:scale-[0.97] transition-transform"
-    >
+const cls = {
+  primary: "gradient-primary text-primary-foreground",
+  action: "gradient-action text-action-foreground",
+  earth: "bg-earth text-earth-foreground",
+}[tone];
+return (
+  <Link
+    to={to as any}
+    className="rounded-[24px] bg-card shadow-card border border-border p-4 card-interactive"
+  >
       <div className={`h-11 w-11 rounded-2xl grid place-items-center ${cls}`}>
         <Icon className="h-5 w-5" />
       </div>

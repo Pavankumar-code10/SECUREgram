@@ -7,7 +7,7 @@ import { BottomNav } from "@/components/sg/BottomNav";
 import { TrustBadge } from "@/components/sg/Badge";
 import { celebrate } from "@/lib/sg/confetti";
 import { useUser } from "@/lib/sg/user";
-import { getMandiPrice } from "@/lib/mandi.functions";
+import { getMandiPrice, getMSPPrice } from "@/lib/mandi.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
@@ -55,6 +55,13 @@ function Sell() {
   const user = useUser();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (user && user.role === "buyer") {
+      toast.error("Buyers cannot sell produce.");
+      navigate({ to: "/dashboard" });
+    }
+  }, [user, navigate]);
+
   const [cropName, setCropName] = useState("Rice");
   const [query, setQuery] = useState("");
   const [qty, setQty] = useState(12);
@@ -73,6 +80,10 @@ function Sell() {
   const [mandi, setMandi] = useState<{ modal: number; market: string; date: string } | null>(null);
   const [mandiLoading, setMandiLoading] = useState(false);
   const fetchMandi = useServerFn(getMandiPrice);
+
+  const [msp, setMsp] = useState<{ price: number; source: string } | null>(null);
+  const [mspLoading, setMspLoading] = useState(false);
+  const fetchMsp = useServerFn(getMSPPrice);
 
   // Live mandi price: replaces hardcoded crop.price as baseline when available
   const baselinePrice = mandi?.modal ?? crop.price;
@@ -100,6 +111,23 @@ function Sell() {
       .finally(() => { if (!cancelled) setMandiLoading(false); });
     return () => { cancelled = true; };
   }, [cropName, fetchMandi]);
+
+  // Fetch MSP for this crop
+  useEffect(() => {
+    let cancelled = false;
+    setMspLoading(true);
+    setMsp(null);
+    fetchMsp({ data: { commodity: cropName } })
+      .then((res) => {
+        if (cancelled) return;
+        if (res && res.msp) {
+          setMsp({ price: res.msp, source: res.source });
+        }
+      })
+      .catch((e) => console.warn("MSP fetch failed", e))
+      .finally(() => { if (!cancelled) setMspLoading(false); });
+    return () => { cancelled = true; };
+  }, [cropName, fetchMsp]);
 
   const captureLocation = () => {
     if (!navigator.geolocation) { toast.error("Geolocation not supported"); return; }
@@ -216,7 +244,7 @@ function Sell() {
               </button>
             ) : (
               <div className="relative rounded-3xl overflow-hidden shadow-card border border-border animate-scale-in">
-                <img src={photo} alt="Crop" className="w-full h-52 object-cover" onClick={() => setShowOpts(s => !s)} />
+                <img src={photo} alt="Crop" className="w-full h-52 object-fill" onClick={() => setShowOpts(s => !s)} />
                 {showOpts && (
                   <div className="absolute inset-0 bg-black/55 grid place-items-center gap-3 animate-fade-in">
                     <div className="flex gap-3">
@@ -373,18 +401,45 @@ function Sell() {
               </span>
             </div>
             {/* Live mandi benchmark */}
-            <div className="mt-3 rounded-2xl bg-background/60 border border-border p-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Live Agmarknet (Karnataka)</p>
-              {mandiLoading ? (
-                <p className="text-[12px] text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Fetching mandi price…</p>
-              ) : mandi ? (
-                <p className="text-[12px] mt-1">
-                  <span className="font-bold text-foreground">₹{mandi.modal}/q</span>{" "}
-                  <span className="text-muted-foreground">at {mandi.market} · {mandi.date}</span>
-                </p>
-              ) : (
-                <p className="text-[12px] text-muted-foreground mt-1">No mandi data — using GRAMA estimate.</p>
-              )}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-2xl bg-background/60 border border-border p-2.5 flex flex-col justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Live Agmarknet</p>
+                  {mandiLoading ? (
+                    <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Fetching…</p>
+                  ) : mandi ? (
+                    <p className="text-[12px] font-bold mt-1 text-foreground">₹{mandi.modal}/q</p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground mt-1">No live data</p>
+                  )}
+                </div>
+                {mandi && (
+                  <p className="text-[9px] text-muted-foreground mt-1 truncate">
+                    {mandi.market} · {mandi.date}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-2xl bg-background/60 border border-border p-2.5 flex flex-col justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground flex items-center justify-between gap-1">
+                    Govt MSP
+                    <span className="text-[8px] font-mono px-1 rounded bg-primary/10 text-primary font-extrabold">GOVT</span>
+                  </p>
+                  {mspLoading ? (
+                    <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin text-primary" /> Loading…</p>
+                  ) : msp ? (
+                    <p className="text-[12px] font-bold mt-1 text-foreground">₹{msp.price}/q</p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground mt-1">Not set</p>
+                  )}
+                </div>
+                {msp && (
+                  <p className={`text-[9px] font-bold mt-1 truncate ${askedPrice >= msp.price ? "text-action" : "text-destructive"}`}>
+                    {askedPrice >= msp.price ? "✅ Meets MSP" : `⚠️ -₹${msp.price - askedPrice} below`}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 

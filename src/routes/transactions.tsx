@@ -26,6 +26,7 @@ const statusColor: Record<string, string> = {
   Delivered: "bg-primary text-primary-foreground",
   Pending: "bg-action/15 text-action",
   Won: "bg-action text-action-foreground",
+  Cancelled: "bg-destructive/15 text-destructive",
 };
 
 const inferTransactionMetadata = (tx: Tx, currentUserId: string | undefined, profiles: Record<string, { name: string; district: string }>) => {
@@ -291,6 +292,27 @@ function Transactions() {
     }
   };
 
+  const handleCancelTransaction = async (tx: Tx) => {
+    if (!confirm("Are you sure you want to cancel this buy request?")) return;
+    try {
+      const { error } = await supabase
+        .from("transactions")
+        .update({ status: "cancelled" })
+        .eq("id", tx.id);
+      
+      if (error) throw error;
+      
+      const local = JSON.parse(localStorage.getItem("sg_transactions") || "[]");
+      const updatedLocal = local.map((lt: any) => lt.id === tx.id ? { ...lt, status: "cancelled" } : lt);
+      localStorage.setItem("sg_transactions", JSON.stringify(updatedLocal));
+
+      setTxs(prev => prev.map((t) => t.id === tx.id ? { ...t, status: "cancelled" } : t));
+      toast.success("Buy request cancelled successfully!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel request");
+    }
+  };
+
   return (
     <>
       <div className="mobile-shell pb-28">
@@ -320,7 +342,7 @@ function Transactions() {
                 const displayColor = statusColor[formattedStatus] || "bg-muted text-foreground";
                 
                 return (
-                  <div key={tx.id} className="rounded-3xl bg-card shadow-card border border-border p-4 animate-fade-in">
+                  <div key={tx.id} className="rounded-[24px] bg-card shadow-card border border-border p-4 animate-fade-in card-interactive">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="font-bold text-sm leading-tight">
@@ -332,21 +354,31 @@ function Transactions() {
                       </div>
                       <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${displayColor}`}>{formattedStatus}</span>
                     </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xl font-bold">₹{tx.amount.toLocaleString("en-IN")}</span>
-                    <button 
-                      onClick={() => handleDownloadReceipt(tx)}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:opacity-80 transition"
-                    >
-                      <Download className="h-3.5 w-3.5" />Receipt
-                    </button>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-xl font-bold">₹{tx.amount.toLocaleString("en-IN")}</span>
+                      <div className="flex items-center gap-3">
+                        {tx.buyer_id === user.id && tx.status.toLowerCase() === "pending" && (
+                          <button 
+                            onClick={() => handleCancelTransaction(tx)}
+                            className="text-xs font-bold text-destructive hover:underline transition"
+                          >
+                            Cancel Request
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => handleDownloadReceipt(tx)}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:opacity-80 transition"
+                        >
+                          <Download className="h-3.5 w-3.5" />Receipt
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      <span className="text-[11px] text-muted-foreground font-semibold">Verified by Custom Crypto</span>
+                      <TrustBadge variant="tamper" className="ml-auto" />
+                    </div>
                   </div>
-                  <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    <span className="text-[11px] text-muted-foreground font-semibold">Verified by Custom Crypto</span>
-                    <TrustBadge variant="tamper" className="ml-auto" />
-                  </div>
-                </div>
               );
             })}
           </div>

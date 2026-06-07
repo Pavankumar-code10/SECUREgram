@@ -45,6 +45,8 @@
   --animate-shield-pulse: shield-pulse 2s ease-in-out infinite;
   --animate-check-pop: check-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-spin-slow: spin 1.5s linear infinite;
+  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.5s infinite linear;
 
   @keyframes fade-in {
     from { opacity: 0; transform: translateY(8px); }
@@ -67,10 +69,18 @@
     60% { transform: scale(1.2) rotate(0); opacity: 1; }
     100% { transform: scale(1) rotate(0); opacity: 1; }
   }
+  @keyframes glow-pulse {
+    0%, 100% { filter: drop-shadow(0 2px 8px color-mix(in oklab, var(--primary) 20%, transparent)); }
+    50% { filter: drop-shadow(0 4px 16px color-mix(in oklab, var(--primary) 45%, transparent)); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
 }
 
 :root {
-  --radius: 1rem;
+  --radius: 1.25rem;
   --background: oklch(0.985 0.003 120);
   --foreground: oklch(0.18 0.02 150);
   --card: oklch(1 0 0);
@@ -100,24 +110,24 @@
 }
 
 .dark {
-  --background: oklch(0.16 0.015 150);
+  --background: oklch(0.14 0.012 150);
   --foreground: oklch(0.96 0.01 130);
-  --card: oklch(0.21 0.02 150);
+  --card: oklch(0.18 0.018 150);
   --card-foreground: oklch(0.96 0.01 130);
-  --popover: oklch(0.21 0.02 150);
+  --popover: oklch(0.18 0.018 150);
   --popover-foreground: oklch(0.96 0.01 130);
   --primary: oklch(0.7 0.18 145);
   --primary-foreground: oklch(0.12 0.02 150);
-  --secondary: oklch(0.27 0.03 150);
+  --secondary: oklch(0.24 0.025 150);
   --secondary-foreground: oklch(0.96 0.01 130);
-  --muted: oklch(0.24 0.02 150);
+  --muted: oklch(0.21 0.015 150);
   --muted-foreground: oklch(0.7 0.02 130);
-  --accent: oklch(0.3 0.05 145);
+  --accent: oklch(0.26 0.04 145);
   --accent-foreground: oklch(0.96 0.01 130);
   --destructive: oklch(0.65 0.2 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.3 0.02 150);
-  --input: oklch(0.27 0.02 150);
+  --border: oklch(0.25 0.018 150);
+  --input: oklch(0.23 0.015 150);
   --ring: oklch(0.7 0.18 145);
   --earth: oklch(0.55 0.07 50);
   --earth-foreground: oklch(0.99 0 0);
@@ -153,16 +163,18 @@
     min-height: 100dvh;
     background: var(--background);
     position: relative;
+    box-shadow: 0 0 40px oklch(0 0 0 / 0.12);
   }
   .glass {
-    backdrop-filter: blur(12px);
-    background: color-mix(in oklab, var(--card) 80%, transparent);
+    backdrop-filter: blur(16px);
+    background: color-mix(in oklab, var(--card) 75%, transparent);
+    border-top: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
   }
   .shadow-card {
-    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04), 0 4px 16px oklch(0 0 0 / 0.06);
+    box-shadow: 0 2px 4px oklch(0 0 0 / 0.02), 0 8px 24px oklch(0 0 0 / 0.05);
   }
   .shadow-elev {
-    box-shadow: 0 4px 12px oklch(0 0 0 / 0.08), 0 12px 32px oklch(0 0 0 / 0.1);
+    box-shadow: 0 4px 16px oklch(0 0 0 / 0.06), 0 16px 40px oklch(0 0 0 / 0.09);
   }
   .gradient-primary {
     background: linear-gradient(135deg, var(--primary), oklch(0.55 0.16 155));
@@ -171,9 +183,27 @@
     background: linear-gradient(135deg, var(--action), oklch(0.68 0.2 50));
   }
   .gradient-hero {
-    background: linear-gradient(160deg, oklch(0.96 0.04 140) 0%, oklch(0.93 0.05 130) 60%, oklch(0.88 0.07 90) 100%);
+    background: linear-gradient(160deg, oklch(0.96 0.03 140) 0%, oklch(0.93 0.04 130) 60%, oklch(0.9 0.06 90) 100%);
   }
   .dark .gradient-hero {
-    background: linear-gradient(160deg, oklch(0.22 0.04 150) 0%, oklch(0.2 0.04 145) 60%, oklch(0.18 0.04 100) 100%);
+    background: linear-gradient(160deg, oklch(0.2 0.03 150) 0%, oklch(0.18 0.03 145) 60%, oklch(0.16 0.03 100) 100%);
+  }
+  .card-interactive {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .card-interactive:hover {
+    transform: translateY(-3px) scale(1.015);
+    box-shadow: 0 12px 30px oklch(0 0 0 / 0.08), 0 2px 8px color-mix(in oklab, var(--primary) 15%, transparent);
+    border-color: color-mix(in oklab, var(--primary) 30%, transparent);
+  }
+  .card-interactive:active {
+    transform: translateY(-1px) scale(0.99);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
